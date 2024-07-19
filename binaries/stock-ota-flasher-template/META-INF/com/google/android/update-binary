@@ -1,0 +1,173 @@
+#!/sbin/sh
+
+ui_print() { $BOOTMODE && echo "$1" || echo -e "ui_print $1\nui_print" >> "$OUTFD"; }
+abort() { ui_print "$1"; ui_print " "; exit 1; }
+
+OUTFD=/proc/self/fd/$2
+ZIPFILE="$3"
+BLOCK_SIZE="4096"
+tmp=/data/local/tmp/stock-fw-installer
+
+chooseport() {
+  while true; do
+    getevent -lc 1 2>&1 | grep VOLUME | grep " DOWN" > $tmp/events
+    if cat $tmp/events 2>/dev/null | grep VOLUME >/dev/null; then
+      break
+    fi
+  done
+  if cat $tmp/events 2>/dev/null | grep VOLUMEUP >/dev/null; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+ui_print " "
+# detect Magisk Manager/booted flashing
+pgrep zygote | grep -v grep >/dev/null && BOOTMODE=true || BOOTMODE=false
+$BOOTMODE || pgrep zygote | grep -v grep >/dev/null && BOOTMODE=true
+$BOOTMODE && abort "You need to flash this Firmware from recovery!"
+
+
+# Device check
+supported=false
+ui_print "Checking device compatibility..."
+for i in Vortex CG65; do
+ for prop in "ro.product.manufacturer" "ro.product.bootimage.model"; do
+    if [ "$(getprop $prop)" == "$i" ]; then
+      ui_print "- Supported Device detected"
+      supported=true
+      break 2
+    fi
+  done
+done
+$supported || abort "- Unsupported device! Aborting!"
+
+rm -rf $tmp
+mkdir -p $tmp/bin
+
+disable_verity_verify() {
+  ui_print " - Disabling Verity & Verification "
+  unzip -o "$ZIPFILE" "$1" -d $tmp/bin >/dev/null 2>&1
+  ui_print " "
+  $tmp/"$1" get-verity
+  $tmp/"$1" get-verification
+  $tmp/"$1" --force disable-verity
+  $tmp/"$1" --force disable-verification
+  $tmp/"$1" get-verity
+  $tmp/"$1" get-verification
+}
+
+set_bootctl() {
+  ui_print " - Setting active boot slot to _a "
+  unzip -o "$ZIPFILE" "$1" -d $tmp/bin >/dev/null 2>&1
+  $tmp/"$1" set-active-boot-slot 0
+}
+
+package_extract_file() {
+  IMG_NAME="$(echo "$1" | awk -F "/" '{ print $NF }')"
+  ui_print " - Extracting $IMG_NAME to $tmp/$IMG_NAME "
+  ui_print " "
+  unzip -o "$ZIPFILE" "$1" -d $tmp/"$IMG_NAME" >/dev/null 2>&1
+  ui_print " - Flashing $IMG_NAME to $2 "
+  ui_print " "
+  blockdev --setrw "$2"
+##cat $tmp/"$IMG_NAME" /dev/zero > "$2" 2>/dev/null || true
+  dd if=$tmp/"$IMG_NAME" of="$2" bs="$BLOCK_SIZE"
+}
+
+package_extract_pigz() {
+  unzip -o "$ZIPFILE" bin/pigz -d $tmp/bin >/dev/null 2>&1
+  IMG_NAME="$(echo "$1" | awk -F "/" '{ print $NF }')"
+  ui_print " - Extracting $IMG_NAME to $tmp/$IMG_NAME "
+  ui_print " "
+  unzip -p "$ZIPFILE" "$1" | $tmp/bin/pigz -d -c $tmp/"$IMG_NAME" >/dev/null 2>&1
+  ui_print " - Flashing $IMG_NAME to $2 "
+  ui_print " "
+  blockdev --setrw "$2"
+##  cat $tmp/"$IMG_DRIVE" /dev/zero > "$2" 2>/dev/null || true
+  dd if=$tmp/"$IMG_NAME" of="$2" bs="$BLOCK_SIZE"
+}
+
+ui_print " "
+ui_print "x=========================================================x"
+ui_print "|          Vortex CG65 MT6765 Stock ROM Flasher           |"
+ui_print "| Fingerprint: TP1A.220624.014/20231108:user/release-keys |"
+ui_print "|                Build: TP1A.220624.014                   |"
+ui_print "|                     Android: 13                         |"
+ui_print "|              Security Patch: 2023-11-05                 |"
+ui_print "x=========================================================x"
+ui_print " "
+ui_print "Continue? Vol+ yes, Vol- no"
+chooseport && flash=true|| exit 0
+ui_print " "
+ui_print " Flashing stock firmware to both slots... "
+ui_print " "
+package_extract_file "Firmware/boot_a.img" "/dev/block/platform/bootdevice/by-name/boot_a" "/dev/block/mmcblk0p23"
+package_extract_file "Firmware/boot_b.img" "/dev/block/platform/bootdevice/by-name/boot_b" "/dev/block/mmcblk0p37"
+package_extract_file "Firmware/boot_para.img" "/dev/block/platform/bootdevice/by-name/boot_para" "/dev/block/mmcblk0p1"
+package_extract_file "Firmware/dtbo_a.img" "/dev/block/platform/bootdevice/by-name/dtbo_a" "/dev/block/mmcblk0p26"
+package_extract_file "Firmware/dtbo_b.img" "/dev/block/platform/bootdevice/by-name/dtbo_b" "/dev/block/mmcblk0p40"
+package_extract_file "Firmware/expdb.img" "/dev/block/platform/bootdevice/by-name/expdb" "/dev/block/mmcblk0p3"
+package_extract_file "Firmware/flashinfo.img" "/dev/block/platform/bootdevice/by-name/flashinfo" "/dev/block/mmcblk0p48"
+package_extract_file "Firmware/frp.img" "/dev/block/platform/bootdevice/by-name/frp" "/dev/block/mmcblk0p4"
+package_extract_file "Firmware/gz_a.img" "/dev/block/platform/bootdevice/by-name/gz_a" "/dev/block/mmcblk0p21"
+package_extract_file "Firmware/gz_b.img" "/dev/block/platform/bootdevice/by-name/gz_b" "/dev/block/mmcblk0p35"
+package_extract_file "Firmware/init_boot_a.img" "/dev/block/platform/bootdevice/by-name/init_boot_a" "/dev/block/mmcblk0p25"
+package_extract_file "Firmware/init_boot_b.img" "/dev/block/platform/bootdevice/by-name/init_boot_b" "/dev/block/mmcblk0p39"
+package_extract_file "Firmware/lk_a.img" "/dev/block/platform/bootdevice/by-name/lk_a" "/dev/block/mmcblk0p22"
+package_extract_file "Firmware/lk_b.img" "/dev/block/platform/bootdevice/by-name/lk_b" "/dev/block/mmcblk0p36"
+package_extract_file "Firmware/logo.img" "/dev/block/platform/bootdevice/by-name/logo" "/dev/block/mmcblk0p16"
+package_extract_file "Firmware/md1img_a.img" "/dev/block/platform/bootdevice/by-name/md1img_a" "/dev/block/mmcblk0p17"
+package_extract_file "Firmware/md1img_b.img" "/dev/block/platform/bootdevice/by-name/md1img_b" "/dev/block/mmcblk0p31"
+package_extract_file "Firmware/md_udc.img" "/dev/block/platform/bootdevice/by-name/md_udc" "/dev/block/mmcblk0p7"
+package_extract_file "Firmware/metadata.img" "/dev/block/platform/bootdevice/by-name/metadata" "/dev/block/mmcblk0p8"
+package_extract_file "Firmware/nvcfg.img" "/dev/block/platform/bootdevice/by-name/nvcfg" "/dev/block/mmcblk0p5"
+package_extract_file "Firmware/nvdata.img" "/dev/block/platform/bootdevice/by-name/nvdata" "/dev/block/mmcblk0p6"
+package_extract_file "Firmware/nvram.img" "/dev/block/platform/bootdevice/by-name/nvram" "/dev/block/mmcblk0p15"
+package_extract_file "Firmware/otp.img" "/dev/block/platform/bootdevice/by-name/otp" "/dev/block/mmcblk0p47"
+package_extract_file "Firmware/para.img" "/dev/block/platform/bootdevice/by-name/para" "/dev/block/mmcblk0p2"
+package_extract_file "Firmware/persist.img" "/dev/block/platform/bootdevice/by-name/persist" "/dev/block/mmcblk0p12"
+package_extract_file "Firmware/preloader_a.img" "/dev/block/platform/bootdevice/by-name/preloader_a" "/dev/block/mmcblk0boot0"
+package_extract_file "Firmware/preloader_b.img" "/dev/block/platform/bootdevice/by-name/preloader_b" "/dev/block/mmcblk0boot1"
+package_extract_file "Firmware/preloader_raw_a.img" "/dev/block/platform/bootdevice/by-name/preloader_raw_a" "/dev/block/mapper/pl_a"
+package_extract_file "Firmware/preloader_raw_b.img" "/dev/block/platform/bootdevice/by-name/preloader_raw_b" "/dev/block/mapper/pl_a"
+package_extract_file "Firmware/proinfo.img" "/dev/block/platform/bootdevice/by-name/proinfo" "/dev/block/mmcblk0p14"
+package_extract_file "Firmware/protect1.img" "/dev/block/platform/bootdevice/by-name/protect1" "/dev/block/mmcblk0p9"
+package_extract_file "Firmware/protect2.img" "/dev/block/platform/bootdevice/by-name/protect2" "/dev/block/mmcblk0p10"
+package_extract_file "Firmware/scp_a.img" "/dev/block/platform/bootdevice/by-name/scp_a" "/dev/block/mmcblk0p19"
+package_extract_file "Firmware/scp_b.img" "/dev/block/platform/bootdevice/by-name/scp_b" "/dev/block/mmcblk0p33"
+package_extract_file "Firmware/sec1.img" "/dev/block/platform/bootdevice/by-name/sec1" "/dev/block/mmcblk0p13"
+package_extract_file "Firmware/seccfg.img" "/dev/block/platform/bootdevice/by-name/seccfg" "/dev/block/mmcblk0p11"
+package_extract_file "Firmware/spmfw_a.img" "/dev/block/platform/bootdevice/by-name/spmfw_a" "/dev/block/mmcblk0p18"
+package_extract_file "Firmware/spmfw_b.img" "/dev/block/platform/bootdevice/by-name/spmfw_b" "/dev/block/mmcblk0p32"
+package_extract_file "Firmware/sspm_a.img" "/dev/block/platform/bootdevice/by-name/sspm_a" "/dev/block/mmcblk0p20"
+package_extract_file "Firmware/sspm_b.img" "/dev/block/platform/bootdevice/by-name/sspm_b" "/dev/block/mmcblk0p34"
+package_extract_pigz "image/super.img.gz" "/dev/block/platform/bootdevice/by-name/super" "/dev/block/mmcblk0p42"
+package_extract_file "Firmware/tee_a.img" "/dev/block/platform/bootdevice/by-name/tee_a" "/dev/block/mmcblk0p27"
+package_extract_file "Firmware/tee_b.img" "/dev/block/platform/bootdevice/by-name/tee_b" "/dev/block/mmcblk0p41"
+package_extract_file "Firmware/vbmeta_a.img" "/dev/block/platform/bootdevice/by-name/vbmeta_a" "/dev/block/mmcblk0p28"
+package_extract_file "Firmware/vbmeta_b.img" "/dev/block/platform/bootdevice/by-name/vbmeta_b" "/dev/block/mmcblk0p43"
+package_extract_file "Firmware/vbmeta_system_a.img" "/dev/block/platform/bootdevice/by-name/vbmeta_system_a" "/dev/block/mmcblk0p29"
+package_extract_file "Firmware/vbmeta_system_b.img" "/dev/block/platform/bootdevice/by-name/vbmeta_system_b" "/dev/block/mmcblk0p44"
+package_extract_file "Firmware/vbmeta_vendor_a.img" "/dev/block/platform/bootdevice/by-name/vbmeta_vendor_a" "/dev/block/mmcblk0p30"
+package_extract_file "Firmware/vbmeta_vendor_b.img" "/dev/block/platform/bootdevice/by-name/vbmeta_vendor_b" "/dev/block/mmcblk0p45"
+package_extract_file "Firmware/vendor_boot_a.img" "/dev/block/platform/bootdevice/by-name/vendor_boot_a" "/dev/block/mmcblk0p24"
+package_extract_file "Firmware/vendor_boot_b.img" "/dev/block/platform/bootdevice/by-name/vendor_boot_b" "/dev/block/mmcblk0p38"
+ui_print " "
+ui_print " Done!"
+ui_print " "
+ui_print " Finalizing & Cleaning up ... "
+ui_print " "
+disable_verity_verify "bin/avbctl"
+ui_print " "
+set_bootctl "bin/bootctl"
+ui_print " "
+rm -rf $tmp
+ui_print " Flashing Complete!"
+ui_print " "
+ui_print "x=============================================x"
+ui_print "|  Firmware installed! Data wipe recommended  |"
+ui_print "x=============================================x"
+
+exit 0
