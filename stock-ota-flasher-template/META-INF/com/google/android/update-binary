@@ -143,7 +143,7 @@ package_extract_file "Firmware/spmfw_a.img" "/dev/block/platform/bootdevice/by-n
 package_extract_file "Firmware/spmfw_b.img" "/dev/block/platform/bootdevice/by-name/spmfw_b" "/dev/block/mmcblk0p32"
 package_extract_file "Firmware/sspm_a.img" "/dev/block/platform/bootdevice/by-name/sspm_a" "/dev/block/mmcblk0p20"
 package_extract_file "Firmware/sspm_b.img" "/dev/block/platform/bootdevice/by-name/sspm_b" "/dev/block/mmcblk0p34"
-package_extract_pigz "image/super.img.gz" "/dev/block/platform/bootdevice/by-name/super" "/dev/block/mmcblk0p42"
+package_extract_pigz "Firmware/super.img.gz" "/dev/block/platform/bootdevice/by-name/super" "/dev/block/mmcblk0p42"
 package_extract_file "Firmware/tee_a.img" "/dev/block/platform/bootdevice/by-name/tee_a" "/dev/block/mmcblk0p27"
 package_extract_file "Firmware/tee_b.img" "/dev/block/platform/bootdevice/by-name/tee_b" "/dev/block/mmcblk0p41"
 package_extract_file "Firmware/vbmeta_a.img" "/dev/block/platform/bootdevice/by-name/vbmeta_a" "/dev/block/mmcblk0p28"
