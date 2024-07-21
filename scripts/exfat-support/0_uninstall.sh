@@ -3,7 +3,7 @@
 export PATH="/data/adb/magisk:/data/adb/magisk/exfat:$PATH"
 alias su="/system/bin/magisk su"
 
-# Remove linked binary from /system/bin/
+# Remove linked binary from /data/adb/magisk/exfat/
 su -c "rm /data/adb/magisk/exfat/dumpexfat"
 su -c "rm /data/adb/magisk/exfat/exfatfsck"
 su -c "rm /data/adb/magisk/exfat/exfatlabel"

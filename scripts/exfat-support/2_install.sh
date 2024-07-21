@@ -19,7 +19,7 @@ if [ "$SECONDARY_STORAGE" == "" ]; then
 	exit 1
 fi
 
-device="/dev/block/vold/disk:8,0"
+device="/dev/block/mmcblk1"
 
 echo "Starting for $device" >> $logfile
 

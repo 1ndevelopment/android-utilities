@@ -24,7 +24,7 @@ su -c "chmod 755 /data/adb/magisk/exfat/ntfs-3g"
 su -c "chmod 755 /data/adb/magisk/exfat/ntfsfix"
 su -c "chmod 755 /data/adb/magisk/exfat/probe"
 
-ui_print " Link binary to /data/adb/magisk/exfat/ for the "all-in-one" build
+# Link binary to /data/adb/magisk/exfat/ for the all-in-one build
 su -c "ln -s /data/adb/magisk/exfat/mount.exfat /data/adb/magisk/exfat/dumpexfat"
 su -c "ln -s /data/adb/magisk/exfat/mount.exfat /data/adb/magisk/exfat/exfatfsck"
 su -c "ln -s /data/adb/magisk/exfat/mount.exfat /data/adb/magisk/exfat/exfatlabel"
