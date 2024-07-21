@@ -48,7 +48,7 @@ mkdir -p $tmp/bin
 
 disable_verity_verify() {
   ui_print " - Disabling Verity & Verification "
-  unzip -o "$ZIPFILE" "$1" -d $tmp/bin >/dev/null 2>&1
+  unzip -o "$ZIPFILE" "$1" -d $tmp/bin/aarch64 >/dev/null 2>&1
   ui_print " "
   $tmp/"$1" get-verity
   $tmp/"$1" get-verification
@@ -60,7 +60,7 @@ disable_verity_verify() {
 
 set_bootctl() {
   ui_print " - Setting active boot slot to _a "
-  unzip -o "$ZIPFILE" "$1" -d $tmp/bin >/dev/null 2>&1
+  unzip -o "$ZIPFILE" "$1" -d $tmp/bin/aarch64 >/dev/null 2>&1
   $tmp/"$1" set-active-boot-slot 0
 }
 
@@ -77,11 +77,11 @@ package_extract_file() {
 }
 
 package_extract_pigz() {
-  unzip -o "$ZIPFILE" bin/pigz -d $tmp/bin >/dev/null 2>&1
+  unzip -o "$ZIPFILE" bin/aarch64/pigz -d $tmp/bin >/dev/null 2>&1
   IMG_NAME="$(echo "$1" | awk -F "/" '{ print $NF }')"
   ui_print " - Extracting $IMG_NAME to $tmp/$IMG_NAME "
   ui_print " "
-  unzip -p "$ZIPFILE" "$1" | $tmp/bin/pigz -d -c $tmp/"$IMG_NAME" >/dev/null 2>&1
+  unzip -p "$ZIPFILE" "$1" | $tmp/bin/aarch64/pigz -d -c $tmp/"$IMG_NAME" >/dev/null 2>&1
   ui_print " - Flashing $IMG_NAME to $2 "
   ui_print " "
   blockdev --setrw "$2"
@@ -159,9 +159,10 @@ ui_print " Done!"
 ui_print " "
 ui_print " Finalizing & Cleaning up ... "
 ui_print " "
-disable_verity_verify "bin/avbctl"
+disable_verity_verify "bin/aarch64/avbctl"
 ui_print " "
-set_bootctl "bin/bootctl"
+set_bootctl "bin/aarch64/avbctl"
+bootctl"
 ui_print " "
 rm -rf $tmp
 ui_print " Flashing Complete!"
