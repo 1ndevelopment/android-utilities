@@ -35,17 +35,17 @@ su -c "magiskpolicy --live 'allow * { app_data_file privapp_data_file } file { e
 su -c "magiskpolicy --live 'allow gsid * * {*}'"
 
 # below is for arrowos GSI
-su -c "magiskpolicy --live 'allow surfaceflinger * * {*}'"
-su -c "magiskpolicy --live 'allow vold * * {*}'"
-su -c "magiskpolicy --live 'allow radio * * {*}'"
-su -c "magiskpolicy --live 'allow installd * * {*}'"
+#su -c "magiskpolicy --live 'allow surfaceflinger * * {*}'"
+#su -c "magiskpolicy --live 'allow vold * * {*}'"
+#su -c "magiskpolicy --live 'allow radio * * {*}'"
+#su -c "magiskpolicy --live 'allow installd * * {*}'"
 
-su -c "magiskpolicy --live 'allow ccci_mdinit * * {*}'"
-su -c "magiskpolicy --live 'allow vendor_init * * {*}'"
-su -c "magiskpolicy --live 'allow hal_fingerprint_oppo_compat * * {*}'"
-su -c "magiskpolicy --live 'allow init * * {*}'"
-su -c "magiskpolicy --live 'allow rild * * {*}'"
+#su -c "magiskpolicy --live 'allow ccci_mdinit * * {*}'"
+#su -c "magiskpolicy --live 'allow vendor_init * * {*}'"
+#su -c "magiskpolicy --live 'allow hal_fingerprint_oppo_compat * * {*}'"
+#su -c "magiskpolicy --live 'allow init * * {*}'"
+#su -c "magiskpolicy --live 'allow rild * * {*}'"
 
-su -c "magiskpolicy --live 'allow bip * * {*}'"
-su -c "magiskpolicy --live 'allow gsm0710muxd * * {*}'"
+#su -c "magiskpolicy --live 'allow bip * * {*}'"
+#su -c "magiskpolicy --live 'allow gsm0710muxd * * {*}'"
 
