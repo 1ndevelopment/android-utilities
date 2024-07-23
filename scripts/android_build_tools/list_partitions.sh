@@ -34,8 +34,8 @@ print_partitions() {
 
 #print_partitions $1
 
-print_partitions "/dev/block/by-name/"
+#print_partitions "/dev/block/by-name/"
 
-#print_partitions "/dev/block/mapper/"
+print_partitions "/dev/block/mapper/"
 
 #print_partitions "/dev/block/platform/bootdevice/by-name/"
