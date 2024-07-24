@@ -9,6 +9,8 @@ alias imjtool="./bin/imjtool"
 alias img2simg="./bin/img2simg"
 alias simg2img="./bin/simg2img"
 
+SELF_DIR=$(echo "./$(basename "$(pwd)")")
+
 cleanup() {
   echo "\nCleaning up workspace...\n"
   rm -rf ./extracted >/dev/null 2>&1
@@ -32,7 +34,8 @@ generate_log() {
   else
     echo "\nNo extracted .img's found within ./extracted/"
     echo "Only some information will be displayed.\n"
-    echo "Would you like to extract .img's from super.img now? [y/n]"
+    echo "Would you like to pull super & extract .img's?"
+    echo -n "[y/n]: "
     read input
     case "$input" in
         [Yy]*) function2 ;;
@@ -372,7 +375,7 @@ function1() {
 }
 
 function2() {
-  # Check if super.img exists in the script's directory
+## Extract super or sub-partitions of super
   if [ -f "./super.img" ]; then
       echo "\nsuper.img found."
       echo "Extract partitions from super.img ?"
@@ -396,12 +399,13 @@ function2() {
              dd if=/dev/block/by-name/super of=./super.img bs=4096 status=progress
              return 0
              ;;
-          *) main_menu ;;
+          *) return 0 ;;
       esac
   fi
 }
 
 function3() {
+## Generate super partition table
   generate_super_partition_table
   echo "\nSaved to Super Info to ./super.log"
   echo "\nReturn to Main Menu?"
@@ -414,7 +418,7 @@ function3() {
 }
 
 function4() {
-## Mount .img from ./extracted/ to ./mounted/
+## Mount images from ./extracted/ onto ./mounted/system
   mkdir -p ./mounted/system/vendor >/dev/null 2>&1
   mkdir -p ./mounted/system/product >/dev/null 2>&1
 
@@ -428,7 +432,6 @@ function4() {
     esac
   }
 
-## mount images from extracted onto ./mounted/system
   echo "What partition would you like to mount?\n"
   echo "Available images:\n"
   ls -1 ./extracted | sed -e 's/\.img$//'
@@ -445,7 +448,7 @@ function4() {
 }
 
 function5() {
-# Unmount chosen .img from mount point
+## Unmount chosen .img from mount point
   unmount_img() {
     while ! umount "$MOUNT_POINT"; do
         echo "\nAttempting to unmount $IMG_NAME from $MOUNT_POINT\n"
@@ -469,7 +472,7 @@ function5() {
 }
 
 function6() {
-# Generate lpmake command from super & its sub partitions
+## Generate lpmake command from super & its sub partitions
   generate_lpmake_command
   echo "\n------------------------------------"
   echo "Saved lpmake command to: ./super.log\n"
@@ -510,7 +513,7 @@ init() {
     calculate_hash; metadata >/dev/null 2>&1 ; main_menu
   else
     echo ""
-    echo "super.img not found within work directory !\n"
+    echo "No super.img found within $SELF_DIR !\n"
     echo "1) Continue without using a super.img"
     echo "2) Pull super.img from device"
     echo "q) Quit \n"
