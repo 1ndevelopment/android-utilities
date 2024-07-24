@@ -32,9 +32,9 @@ generate_log() {
   else
     echo "\nNo extracted .img's found within ./extracted/"
     echo "Only some information will be displayed.\n"
-    echo "Would you like to extract .img's from super.img now? [y/n]\n"
-    read log_input1
-    case "$log_input1" in
+    echo "Would you like to extract .img's from super.img now? [y/n]"
+    read input
+    case "$input" in
         [Yy]*) function2 ;;
         *) return 0 ;;
     esac
@@ -77,7 +77,7 @@ calculate_hash() {
      if [ "$current_hash" != "$previous_log" ]; then
          hash_changed
      else
-         echo "The hash logs have not changed."
+         echo "\nThe hash logs have not changed."
          echo "Current hash: $current_hash\n"
          echo "Starting..."
      fi
@@ -356,11 +356,6 @@ EOF)
   echo "\n$LPMAKE_COMMAND" | tee -a super.log
 }
 
-function1() {
-  cleanup
-  function0
-}
-
 cleanup() {
   echo "\nCleaning up workspace...\n"
   rm -rf ./extracted >/dev/null 2>&1
@@ -368,6 +363,11 @@ cleanup() {
   rm ./.log >/dev/null 2>&1
   rm ./super.log >/dev/null 2>&1
   rm ./.previous_hash >/dev/null 2>&1
+}
+
+function1() {
+  cleanup
+  main_menu
 }
 
 function2() {
@@ -382,10 +382,10 @@ function2() {
              imjtool ./super.img extract
              return 0
              ;;
-          *) function0 ;;
+          *) main_menu ;;
       esac
   else
-      echo "\nPull super.img from /dev/block/by-name/super ? [y/n] \n"
+      echo "\nPull super.img from /dev/block/by-name/super ? [y/n]\n"
       read input
       case "$input" in
           [Yy])
@@ -393,7 +393,7 @@ function2() {
              dd if=/dev/block/by-name/super of=./super.img bs=4096 status=progress
              return 0
              ;;
-          *) function0 ;;
+          *) main_menu ;;
       esac
   fi
 }
@@ -404,7 +404,7 @@ function3() {
   echo "\nReturn to Main Menu? [y/n]\n"
   read input
   case "$input" in
-      [Yy]) function0 ;;
+      [Yy]) main_menu ;;
       *) function3 ;;
   esac
 }
@@ -422,7 +422,7 @@ function4() {
     system*) MOUNT_POINT="./mounted/system" ;;
     vendor*) MOUNT_POINT="./mounted/system/vendor" ;;
     product*) MOUNT_POINT="./mounted/system/product" ;;
-    b) echo "\nHeading back to Main Menu...\n" && function0 ;;
+    b) echo "\nHeading back to Main Menu...\n" && main_menu ;;
     *) echo "\nUnknown image name\n$IMG_NAME" && exit 1 ;;
   esac
   if [[ $IMG_NAME != *_b.img ]]; then
@@ -431,7 +431,7 @@ function4() {
     sudo mount -t ext4 -o rw $LOOP_DEVICE $MOUNT_POINT
     if mountpoint -q $MOUNT_POINT; then
       echo "\nImage mounted successfully at $MOUNT_POINT\n"
-      function0
+      main_menu
     else
       echo "\nFailed to mount the image\n"
     fi
@@ -449,7 +449,7 @@ function5() {
     system*) MOUNT_POINT="./mounted/system" ;;
     vendor*) MOUNT_POINT="./mounted/system/vendor" ;;
     product*) MOUNT_POINT="./mounted/system/product" ;;
-    b) echo "\nHeading back to Main Menu...\n" && function0 ;;
+    b) echo "\nHeading back to Main Menu...\n" && main_menu ;;
     *) echo "\nUnknown mount directory:\n$IMG_NAME" && exit 1 ;;
   esac
   if [[ $IMG_NAME != *_b.img ]]; then
@@ -476,11 +476,11 @@ function6() {
     echo "\nGenerated new super!"
     mv ./new_super.img ./out/new_super"$HASHSTAMP".img
   else
-    function0
+    main_menu
   fi
 }
 
-function0() {
+main_menu() {
   echo "\nSuper Edit v0.1 - Main Menu"
   echo "\nx===========================================x"
   echo "| 1) Cleanup 2) Extract Super 3) IMG Info   |"
@@ -496,21 +496,20 @@ function0() {
 
 init() {
   if [ -f "./super.img" ]; then
-    calculate_hash \ metadata >/dev/null 2>&1 \ function0
+    calculate_hash; metadata >/dev/null 2>&1 ; main_menu
   else
     echo ""
-    echo "super.img not found in the super-edit directory.\n"
-    echo "1) Continue without a super.img"
-    echo "2) Pull super.img"
+    echo "super.img not found within work directory !\n"
+    echo "1) Continue without using a super.img"
+    echo "2) Pull super.img from device"
     echo "q) Quit \n"
     read input
     case "$input" in
-        1) function0 ;;
-        2) function2 ;;
-        b) return 0 ;;
+        1) calculate_hash; metadata >/dev/null 2>&1 ; main_menu ;;
+        2) calculate_hash; metadata >/dev/null 2>&1 ; function2 ;;
+        q) return 0 ;;
     esac
   fi
 }
 
 init
-exit 0
