@@ -9,17 +9,36 @@ alias imjtool="./bin/imjtool"
 alias img2simg="./bin/img2simg"
 alias simg2img="./bin/simg2img"
 
-SCRIPT_STARTED=false
+cleanup() {
+  echo "\nCleaning up workspace...\n"
+  rm -rf ./extracted >/dev/null 2>&1
+  rm -rf ./mounted >/dev/null 2>&1
+  rm ./.log >/dev/null 2>&1
+  rm ./super.log >/dev/null 2>&1
+  rm ./.previous_hash >/dev/null 2>&1
+}
 
 generate_log() {
-  rm .log >/dev/null 2>&1
-  cd extracted/ && stat -c '%n %s' *.img >> ../.log
-  totalimgsize=$(cat ../.log|awk '{printf"%s""+",$2}'|sed 's/...$//'|bc)
-  superimgsize=$(stat -c '%n %s' ../super.img|awk '{print $2}')
-  cd .. && echo "\nTotal Image Size: $totalimgsize" >> .log
-  echo "\nSuper Image Size: $superimgsize" >> .log
-  echo "\n------------------------\n" >> .log
-  lpdump >> .log
+  touch .log
+  if [ -f "./extracted/*.img" ]; then
+    rm .log >/dev/null 2>&1
+    cd extracted/ && stat -c '%n %s' *.img >> ../.log
+    totalimgsize=$(cat ../.log|awk '{printf"%s""+",$2}'|sed 's/...$//'|bc)
+    superimgsize=$(stat -c '%n %s' ../super.img|awk '{print $2}')
+    cd .. && echo "\nTotal Image Size: $totalimgsize" >> .log
+    echo "\nSuper Image Size: $superimgsize" >> .log
+    echo "\n------------------------\n" >> .log
+    lpdump >> .log
+  else
+    echo "\nNo extracted .img's found within ./extracted/"
+    echo "Only some information will be displayed.\n"
+    echo "Would you like to extract .img's from super.img now? [y/n]\n"
+    read log_input1
+    case "$log_input1" in
+        [Yy]*) function2 ;;
+        *) return 0 ;;
+    esac
+  fi
 }
 
 b2mb() {
@@ -58,19 +77,18 @@ calculate_hash() {
      if [ "$current_hash" != "$previous_log" ]; then
          hash_changed
      else
-         echo "The hash logs have not changed.\n"
+         echo "The hash logs have not changed."
+         echo "Current hash: $current_hash\n"
          echo "Starting..."
      fi
   else
-     echo "No previous hash found. This might be the first run.\n"
-     #echo "Current hash: $current_hash"
+     echo "\nNo previous hash found. This might be the first run.\n"
+     echo "Starting...\n"
   fi
 # Save the current hash for future comparisons
 echo "$current_hash" > "$HASH_FILE"
-HASHSTAMP=$(echo _repacked_$current_hash)
+HASHSTAMP=$(echo _$current_hash)
 }
-
-#date +log-%F-
 
 metadata() {
 PRODUCT_A_ATTRIBUTES=$(echo "$(head -n 23 < .log | tail -n 1)" | awk '{sub(/^  Attributes: /, ""); print}')
@@ -339,28 +357,44 @@ EOF)
 }
 
 function1() {
+  cleanup
+  function0
+}
+
+cleanup() {
   echo "\nCleaning up workspace...\n"
   rm -rf ./extracted >/dev/null 2>&1
   rm -rf ./mounted >/dev/null 2>&1
   rm ./.log >/dev/null 2>&1
   rm ./super.log >/dev/null 2>&1
   rm ./.previous_hash >/dev/null 2>&1
-  function0
 }
 
 function2() {
   # Check if super.img exists in the script's directory
   if [ -f "./super.img" ]; then
       echo "\nsuper.img found."
-      echo "Extracting partitons from super.img...\n"
-      rm -rf ./extracted >/dev/null 2>&1
-      imjtool ./super.img extract
-      function0
+      echo "Extract partitions from super.img ? [y/n] \n"
+      read "$input"
+      case "$input" in
+          [Yy])
+             echo "Extracting partitons from super.img...\n"
+             imjtool ./super.img extract
+             return 0
+             ;;
+          *) function0 ;;
+      esac
   else
-      echo "\nsuper.img not found in the super-edit directory."
-      echo "Dumping /dev/block/by-name/super to ./super-exit/super.img\n"
-      dd if=/dev/block/by-name/super of=./super.img bs=4096 status=progress
-      function2
+      echo "\nPull super.img from /dev/block/by-name/super ? [y/n] \n"
+      read input
+      case "$input" in
+          [Yy])
+             echo "\ndumping /dev/block/by-name/super to ./super.img ..."
+             dd if=/dev/block/by-name/super of=./super.img bs=4096 status=progress
+             return 0
+             ;;
+          *) function0 ;;
+      esac
   fi
 }
 
@@ -369,17 +403,16 @@ function3() {
   echo "\nSaved to Super Info to ./super.log"
   echo "\nReturn to Main Menu? [y/n]\n"
   read input
-  if [[ $input == "Y" || $input == "y" ]]; then
-    function0
-  else
-    function3
-  fi
+  case "$input" in
+      [Yy]) function0 ;;
+      *) function3 ;;
+  esac
 }
 
 function4() {
+  mkdir -p ./mounted/system/vendor >/dev/null 2>&1
+  mkdir -p ./mounted/system/product >/dev/null 2>&1
   ## mount images from extracted onto ./mounted/system
-  mkdir -p $(pwd)/mounted/system/vendor >/dev/null 2>&1
-  mkdir -p $(pwd)/mounted/system/product >/dev/null 2>&1
   echo "\nWhat partition would you like to mount?"
   echo "\nAvailable images:\n"
   ls -1 ./extracted | sed -e 's/\.img$//'
@@ -447,39 +480,37 @@ function6() {
   fi
 }
 
-main_menu() {
+function0() {
   echo "\nSuper Edit v0.1 - Main Menu"
   echo "\nx===========================================x"
   echo "| 1) Cleanup 2) Extract Super 3) IMG Info   |"
   echo "| 4) Mount IMG 5) Unmount IMG 6) Make Super |"
   echo "| q) Quit                                   |"
   echo "x===========================================x\n"
-}
-
-function0() {
-  if [ "$SCRIPT_STARTED" != true ]; then
-    echo "Error: This function can only be called by the script."
-    exit 1
-  fi
-  main_menu
   read input
-  if [[ $input = [0123456] ]]; then
-    function"$input"
-  fi
-  if [[ $input = [q] ]]; then
-    exit 0
-  fi
+  case "$input" in
+      [0-6]) function"$input" ;;
+      q) exit 0 ;;
+  esac
 }
 
 init() {
-  clear
-  SCRIPT_STARTED=true
-  calculate_hash
-  metadata
-  input=0
-  if [[ $input = [0123456] ]]; then
-    function$input
+  if [ -f "./super.img" ]; then
+    calculate_hash \ metadata >/dev/null 2>&1 \ function0
+  else
+    echo ""
+    echo "super.img not found in the super-edit directory.\n"
+    echo "1) Continue without a super.img"
+    echo "2) Pull super.img"
+    echo "q) Quit \n"
+    read input
+    case "$input" in
+        1) function0 ;;
+        2) function2 ;;
+        b) return 0 ;;
+    esac
   fi
 }
 
 init
+exit 0
