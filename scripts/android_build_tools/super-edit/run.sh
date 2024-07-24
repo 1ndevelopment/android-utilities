@@ -77,7 +77,7 @@ calculate_hash() {
      if [ "$current_hash" != "$previous_log" ]; then
          hash_changed
      else
-         echo "\nThe hash logs have not changed."
+         echo "The hash logs have not changed."
          echo "Current hash: $current_hash\n"
          echo "Starting..."
      fi
@@ -328,7 +328,8 @@ EOF
 }
 
 generate_lpmake_command() {
-  rm super.log >/dev/null 2>&1 && generate_super_partition_table
+  rm super.log >/dev/null 2>&1 && \
+  generate_super_partition_table >/dev/null 2>&1
   LPMAKE_COMMAND=$(cat << EOF
 lpmake \\
 --metadata-size $METADATA_MAX_SIZE \\
@@ -374,7 +375,8 @@ function2() {
   # Check if super.img exists in the script's directory
   if [ -f "./super.img" ]; then
       echo "\nsuper.img found."
-      echo "Extract partitions from super.img ? [y/n] \n"
+      echo "Extract partitions from super.img ?"
+      echo -n "[y/n]: "
       read "$input"
       case "$input" in
           [Yy])
@@ -385,7 +387,8 @@ function2() {
           *) main_menu ;;
       esac
   else
-      echo "\nPull super.img from /dev/block/by-name/super ? [y/n]\n"
+      echo "\nPull super.img from /dev/block/by-name/super ?"
+      echo -n "[y/n]: "
       read input
       case "$input" in
           [Yy])
@@ -401,83 +404,90 @@ function2() {
 function3() {
   generate_super_partition_table
   echo "\nSaved to Super Info to ./super.log"
-  echo "\nReturn to Main Menu? [y/n]\n"
+  echo "\nReturn to Main Menu?"
+  echo -n "[y/n]: "
   read input
   case "$input" in
       [Yy]) main_menu ;;
-      *) function3 ;;
+      *) ;;
   esac
 }
 
 function4() {
+## Mount .img from ./extracted/ to ./mounted/
   mkdir -p ./mounted/system/vendor >/dev/null 2>&1
   mkdir -p ./mounted/system/product >/dev/null 2>&1
-  ## mount images from extracted onto ./mounted/system
-  echo "\nWhat partition would you like to mount?"
-  echo "\nAvailable images:\n"
-  ls -1 ./extracted | sed -e 's/\.img$//'
-  echo "\nb) Go back\n"
-  read IMG_NAME
-  case "$IMG_NAME" in
-    system*) MOUNT_POINT="./mounted/system" ;;
-    vendor*) MOUNT_POINT="./mounted/system/vendor" ;;
-    product*) MOUNT_POINT="./mounted/system/product" ;;
-    b) echo "\nHeading back to Main Menu...\n" && main_menu ;;
-    *) echo "\nUnknown image name\n$IMG_NAME" && exit 1 ;;
-  esac
-  if [[ $IMG_NAME != *_b.img ]]; then
+
+  mount_img() {
     LOOP_DEVICE=$(sudo losetup -f)
     sudo losetup $LOOP_DEVICE ./extracted/$IMG_NAME.img
     sudo mount -t ext4 -o rw $LOOP_DEVICE $MOUNT_POINT
-    if mountpoint -q $MOUNT_POINT; then
-      echo "\nImage mounted successfully at $MOUNT_POINT\n"
-      main_menu
-    else
-      echo "\nFailed to mount the image\n"
-    fi
-  fi
+    case "$(mountpoint -q "$MOUNT_POINT"; echo $?)" in
+      0) printf '\nMounted successfully at %s\n' "$MOUNT_POINT"; main_menu ;;
+      *) printf '\nFailed to mount the image\n'; return 0 ;;
+    esac
+  }
+
+## mount images from extracted onto ./mounted/system
+  echo "What partition would you like to mount?\n"
+  echo "Available images:\n"
+  ls -1 ./extracted | sed -e 's/\.img$//'
+  echo "\nb) Go back\n"
+  echo -n ">> "
+  read IMG_NAME
+  case "$IMG_NAME" in
+    system*) MOUNT_POINT="./mounted/system" && mount_img ;;
+    vendor*) MOUNT_POINT="./mounted/system/vendor" && mount_img ;;
+    product*) MOUNT_POINT="./mounted/system/product" && mount_img ;;
+    b) echo "\nHeading back to Main Menu...\n" && main_menu ;;
+    *) echo "\nUnknown image name\n$IMG_NAME" && function4 ;;
+  esac
 }
 
 function5() {
-  ## unmount images from mounted dir
+# Unmount chosen .img from mount point
+  unmount_img() {
+    while ! umount "$MOUNT_POINT"; do
+        echo "\nAttempting to unmount $IMG_NAME from $MOUNT_POINT\n"
+    done
+    echo "\nUnmounted $MOUNT_POINT\n"
+    function5
+  }
   echo "\nWhat partition would you like to unmount?\n"
   echo "\nCurrently mounted:\n"
   sudo busybox mount | grep /mounted/ | awk '{print $3}' | sed 's/.*\///'
   echo "\nb) Go back\n"
+  echo -n ">> "
   read IMG_NAME
   case "$IMG_NAME" in
-    system*) MOUNT_POINT="./mounted/system" ;;
-    vendor*) MOUNT_POINT="./mounted/system/vendor" ;;
-    product*) MOUNT_POINT="./mounted/system/product" ;;
+    system*) MOUNT_POINT="./mounted/system" && unmount_img ;;
+    vendor*) MOUNT_POINT="./mounted/system/vendor" && unmount_img ;;
+    product*) MOUNT_POINT="./mounted/system/product" && unmount_img ;;
     b) echo "\nHeading back to Main Menu...\n" && main_menu ;;
-    *) echo "\nUnknown mount directory:\n$IMG_NAME" && exit 1 ;;
+    *) echo "\nUnknown mount directory:\n$IMG_NAME" && return 0 ;;
   esac
-  if [[ $IMG_NAME != *_b.img ]]; then
-    while ! umount $MOUNT_POINT
-    do
-       echo "\nAttempting to unmount $IMG_NAME from $MOUNT_POINT\n"
-    done
-    echo "\nUnmounted $MOUNT_POINT\n"
-  function5
-  fi
 }
 
 function6() {
+# Generate lpmake command from super & its sub partitions
   generate_lpmake_command
-  echo "\n------------------------"
+  echo "\n------------------------------------"
   echo "Saved lpmake command to: ./super.log\n"
-  echo "Would you like to make a new_super.img ? [y/n] \n"
+  echo "Would you like to make a new_super.img ?"
+  echo -n "[y/n]: "
   read make_new_super
-  if [[ $make_new_super == "Y" || $make_new_super == "y" ]]; then
-    echo "\n------------------------\n"
-    echo "Building new_super.img...\n"
-    eval "$LPMAKE_COMMAND"
-    mkdir ./out >/dev/null 2>&1
-    echo "\nGenerated new super!"
-    mv ./new_super.img ./out/new_super"$HASHSTAMP".img
-  else
-    main_menu
-  fi
+  case "$make_new_super" in
+      [Yy])
+         echo "\n------------------------------------"
+         echo "Building new_super.img...\n"
+         mkdir ./out >/dev/null 2>&1
+         eval "$LPMAKE_COMMAND"
+         echo "\nGenerated new super!"
+         mv ./new_super.img ./out/new_super"$HASHSTAMP".img
+         return 0
+         ;;
+      *) main_menu ;;
+  esac
 }
 
 main_menu() {
@@ -487,6 +497,7 @@ main_menu() {
   echo "| 4) Mount IMG 5) Unmount IMG 6) Make Super |"
   echo "| q) Quit                                   |"
   echo "x===========================================x\n"
+  echo -n ">> "
   read input
   case "$input" in
       [0-6]) function"$input" ;;
@@ -503,7 +514,9 @@ init() {
     echo "1) Continue without using a super.img"
     echo "2) Pull super.img from device"
     echo "q) Quit \n"
+    echo -n "Choice: "
     read input
+    echo ""
     case "$input" in
         1) calculate_hash; metadata >/dev/null 2>&1 ; main_menu ;;
         2) calculate_hash; metadata >/dev/null 2>&1 ; function2 ;;
