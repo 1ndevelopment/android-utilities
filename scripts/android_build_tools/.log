@@ -1,0 +1,165 @@
+
+Total Image Size: 
+
+Super Image Size: 
+
+------------------------
+
+\nTotal Image Size: 
+\nSuper Image Size: 
+\n------------------------\n
+Total Image Size: 5490483200
+Super Size: 8792064000
+Metadata version: 10.2
+Metadata size: 872 bytes
+Metadata max size: 65536 bytes
+Metadata slot count: 3
+Header flags: virtual_ab_device
+Partition table:
+------------------------
+  Name: product_a
+  Group: main_a
+  Attributes: readonly
+  Extents:
+    0 .. 4772047 linear super 2048
+------------------------
+  Name: product_b
+  Group: main_b
+  Attributes: readonly
+  Extents:
+------------------------
+  Name: system_a
+  Group: main_a
+  Attributes: readonly
+  Extents:
+    0 .. 4928671 linear super 4775936
+------------------------
+  Name: system_b
+  Group: main_b
+  Attributes: readonly
+  Extents:
+    0 .. 220327 linear super 9705472
+------------------------
+  Name: vendor_a
+  Group: main_a
+  Attributes: readonly
+  Extents:
+    0 .. 802551 linear super 9926656
+------------------------
+  Name: vendor_b
+  Group: main_b
+  Attributes: readonly
+  Extents:
+------------------------
+Super partition layout:
+------------------------
+super: 2048 .. 4774096: product_a (4772048 sectors)
+super: 4775936 .. 9704608: system_a (4928672 sectors)
+super: 9705472 .. 9925800: system_b (220328 sectors)
+super: 9926656 .. 10729208: vendor_a (802552 sectors)
+------------------------
+Block device table:
+------------------------
+  Partition name: super
+  First sector: 2048
+  Size: 8792064000 bytes
+  Flags: none
+------------------------
+Group table:
+------------------------
+  Name: default
+  Maximum size: 0 bytes
+  Flags: none
+------------------------
+  Name: main_a
+  Maximum size: 8789966848 bytes
+  Flags: none
+------------------------
+  Name: main_b
+  Maximum size: 8789966848 bytes
+  Flags: none
+------------------------
+
+Total Image Size: 5490483200
+Super Size: 8792064000
+Metadata version: 10.2
+Metadata size: 872 bytes
+Metadata max size: 65536 bytes
+Metadata slot count: 3
+Header flags: virtual_ab_device
+Partition table:
+------------------------
+  Name: product_a
+  Group: main_a
+  Attributes: readonly
+  Extents:
+    0 .. 4772047 linear super 2048
+------------------------
+  Name: product_b
+  Group: main_b
+  Attributes: readonly
+  Extents:
+------------------------
+  Name: system_a
+  Group: main_a
+  Attributes: readonly
+  Extents:
+    0 .. 4928671 linear super 4775936
+------------------------
+  Name: system_b
+  Group: main_b
+  Attributes: readonly
+  Extents:
+    0 .. 220327 linear super 9705472
+------------------------
+  Name: vendor_a
+  Group: main_a
+  Attributes: readonly
+  Extents:
+    0 .. 802551 linear super 9926656
+------------------------
+  Name: vendor_b
+  Group: main_b
+  Attributes: readonly
+  Extents:
+------------------------
+Super partition layout:
+------------------------
+super: 2048 .. 4774096: product_a (4772048 sectors)
+super: 4775936 .. 9704608: system_a (4928672 sectors)
+super: 9705472 .. 9925800: system_b (220328 sectors)
+super: 9926656 .. 10729208: vendor_a (802552 sectors)
+------------------------
+Block device table:
+------------------------
+  Partition name: super
+  First sector: 2048
+  Size: 8792064000 bytes
+  Flags: none
+------------------------
+Group table:
+------------------------
+  Name: default
+  Maximum size: 0 bytes
+  Flags: none
+------------------------
+  Name: main_a
+  Maximum size: 8789966848 bytes
+  Flags: none
+------------------------
+  Name: main_b
+  Maximum size: 8789966848 bytes
+  Flags: none
+------------------------
+
+Total Image Size: 5490483200
+Super Size: 8792064000
+Total Image Size: 5490483200
+Super Size: 8792064000
+Total Image Size: 5490483200
+Super Size: 8792064000
+
+Total Image Size: 5490483200
+Super Size: 8792064000
+Total Image Size: 5490483200
+Super Size: 8792064000
