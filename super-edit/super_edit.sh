@@ -458,13 +458,13 @@ mount_img() {
 
   mount() {
     LOOP_DEVICE=$(sudo losetup -f)
-    fallocate -l 2G ./extracted/$IMG_NAME.img
-    resize2fs ./extracted/$IMG_NAME.img 2G
+    #fallocate -l 2G ./extracted/$IMG_NAME.img
+    #resize2fs ./extracted/$IMG_NAME.img 2G
     sudo losetup $LOOP_DEVICE ./extracted/$IMG_NAME.img
     sudo mount -t ext4 -o rw $LOOP_DEVICE $MOUNT_POINT
     case "$(mountpoint -q "$MOUNT_POINT"; echo $?)" in
       0) echo "\n$IMG_NAME mounted successfully at: $MOUNT_POINT"; main_menu ;;
-      *) printf '\nFailed to mount the image\n'; function4 ;;
+      *) printf '\nFailed to mount the image\n'; mount_img ;;
     esac
   }
   echo "\nWhat partition would you like to mount?\n"
@@ -488,8 +488,8 @@ unmount_img() {
         echo "\nAttempting to unmount $IMG_NAME from $MOUNT_POINT\n"
     done
     echo "\nSuccessfully unmounted $IMG_NAME from $MOUNT_POINT"
-    e2fsck -yf ./extracted/$IMG_NAME.img
-    resize2fs -M ./extracted/$IMG_NAME.img
+    #e2fsck -yf ./extracted/$IMG_NAME.img
+    #resize2fs -M ./extracted/$IMG_NAME.img
     main_menu
   }
   echo "\nWhat partition would you like to unmount?\n"
