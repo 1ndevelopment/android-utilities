@@ -10,7 +10,7 @@ LOOP_DEVICE=$(sudo losetup -f) && sudo losetup $LOOP_DEVICE ./product_a.img && s
 cd product_a/app
 rm -r Chrome Gmail2 Keep Photos Videos YouTube YTMusic Meet
 cd ../priv-app
-rm -r PersonalSafety
+rm -r PersonalSafety AssistantShell
 cd ../..
 umount ./product_a
 LOOP_DEVICE=$(sudo losetup -f) && sudo losetup $LOOP_DEVICE ./vendor_a.img && sudo mount -t ext4 -o rw $LOOP_DEVICE ./vendor_a
