@@ -3,7 +3,7 @@
 # ONCE ROOTED; MOVE THIS FILE TO /data/adb/service.d/
 
 export su="/system/bin/magisk su"
-export magiskpolicy="/data/adb/magisk/magiskpolicy"
+export magiskpolicy="/system/bin/magiskpolicy"
 
 $su -c "$magiskpolicy --live 'allow untrusted_app_27 * * {*}'"
 $su -c "$magiskpolicy --live 'allow system_server * * {*}'"
