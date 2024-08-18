@@ -78,7 +78,7 @@ metadata() {
     $lpdump >> $TMP_FILE1
   }
   refresh_sizes
-  
+
   ## functions that parse $TMP_FILE1 at certain coordinance for variable values
   size() { x="$1" && stat -c '%s' "$x" ; }
   parse() { x="$1"; y="$2" && echo "$x" | awk -v z="$y" '{print $z}' ; }
@@ -87,7 +87,7 @@ metadata() {
   extents() { x="$1" && grep -e "Name: $x" -A4 "$TMP_FILE1" | sed -e '1,4d' -e 's/^    //' ; }
   image_group() { x="$1" && grep -E "Partition table:" -A16 "$TMP_FILE1" | grep -e "Name: $x" -A4 ; }
   group_info() { x="$1" && grep -E "Group table:" -A16 "$TMP_FILE1" | grep -e "Name: $x" -A2 | sanitize ; }
-  
+
   ## Calculate total size of all partitions inside super.img including super
   [ -f "./super.img" ] && {
     SUPER_PARTITION_NAME=$(grep "Partition name:" $TMP_FILE1 | sed -e 's/^  //' | awk '{print $3}')
@@ -115,7 +115,7 @@ metadata() {
     PRODUCT_A_SECTOR_FINISH=$(parse "$PRODUCT_A_LAYOUT" 3 | sanitize)
     PRODUCT_A_SECTOR_SIZE=$(parse "$PRODUCT_A_LAYOUT" 5 | sanitize)
     PRODUCT_A_GROUP_NAME=$(image_group "product_a" | sed '1d;3,5d' | awk '{print $2}')
-    
+
     PRODUCT_B_NAME="product_b"
     PRODUCT_B_SIZE=$(size "./extracted/product_b.img" || echo "0")
     PRODUCT_B_SIZE_MB=$(b2mb "$PRODUCT_B_SIZE") ; PRODUCT_B_SIZE_GB=$(b2gb "$PRODUCT_B_SIZE")
@@ -129,7 +129,7 @@ metadata() {
     PRODUCT_TOTAL_SIZE=$(echo "$PRODUCT_A_SIZE + $PRODUCT_B_SIZE" | bc)
     PRODUCT_TOTAL_MB=$(b2mb "$PRODUCT_TOTAL_SIZE") ; PRODUCT_TOTAL_GB=$(b2gb "$PRODUCT_TOTAL_SIZE")
   }
-  
+
   [ -f "./extracted/system_a.img" ] && {
     SYSTEM_A_NAME="system_a"
     SYSTEM_A_SIZE=$(size "./extracted/system_a.img" || echo "0")
@@ -141,7 +141,7 @@ metadata() {
     SYSTEM_A_SECTOR_FINISH=$(parse "$SYSTEM_A_LAYOUT" 3 | sanitize)
     SYSTEM_A_SECTOR_SIZE=$(parse "$SYSTEM_A_LAYOUT" 5 | sanitize)
     SYSTEM_A_GROUP_NAME=$(image_group "system_a" | sed '1d;3,5d' | awk '{print $2}')
-    
+
     SYSTEM_B_NAME="system_b"
     SYSTEM_B_SIZE=$(size "./extracted/system_b.img" || echo "0")
     SYSTEM_B_SIZE_MB=$(b2mb "$SYSTEM_B_SIZE") ; SYSTEM_B_SIZE_GB=$(b2gb "$SYSTEM_B_SIZE")
@@ -155,7 +155,7 @@ metadata() {
     SYSTEM_TOTAL_SIZE=$(echo "$SYSTEM_A_SIZE + $SYSTEM_B_SIZE" | bc)
     SYSTEM_TOTAL_MB=$(b2mb "$SYSTEM_TOTAL_SIZE") ; SYSTEM_TOTAL_GB=$(b2gb "$SYSTEM_TOTAL_SIZE")
   }
-  
+
   [ -f "./extracted/vendor_a.img" ] && {
     VENDOR_A_NAME="vendor_a"
     VENDOR_A_SIZE=$(size "./extracted/vendor_a.img" || echo "0")
@@ -167,7 +167,7 @@ metadata() {
     VENDOR_A_SECTOR_FINISH=$(parse "$VENDOR_A_LAYOUT" 3 | sanitize)
     VENDOR_A_SECTOR_SIZE=$(parse "$VENDOR_A_LAYOUT" 5 | sanitize)
     VENDOR_A_GROUP_NAME=$(image_group "vendor_a" | sed '1d;3,5d' | awk '{print $2}')
-    
+
     VENDOR_B_NAME="vendor_b"
     VENDOR_B_SIZE=$(size "./extracted/vendor_b.img" || echo "0")
     VENDOR_B_SIZE_MB=$(b2mb "$VENDOR_B_SIZE") ; VENDOR_B_SIZE_GB=$(b2gb "$VENDOR_B_SIZE")
@@ -181,19 +181,18 @@ metadata() {
     VENDOR_TOTAL_SIZE=$(echo "$VENDOR_A_SIZE + $VENDOR_B_SIZE" | bc)
     VENDOR_TOTAL_MB=$(b2mb "$VENDOR_TOTAL_SIZE") ; VENDOR_TOTAL_GB=$(b2gb "$VENDOR_TOTAL_SIZE")
   }
-  
+
   [ -f "./extracted/product_a.img" ] && [ -f "./extracted/system_a.img" ] && [ -f "./extracted/vendor_a.img" ] && {
     MAIN_A_TOTAL_SIZE=$(echo "$PRODUCT_A_SIZE + $SYSTEM_A_SIZE + $VENDOR_A_SIZE" | bc || echo "0")
     MAIN_A_TOTAL_MB=$(b2mb "$MAIN_A_TOTAL_SIZE") ; MAIN_A_TOTAL_GB=$(b2gb "$MAIN_A_TOTAL_SIZE")
     MAIN_A_MAX_SIZE=$(group_info "main_a" | awk '{print $5}') ; MAIN_A_MAX_MB=$(b2mb "$MAIN_A_MAX_SIZE")
     MAIN_A_MAX_GB=$(b2gb "$MAIN_A_MAX_SIZE") ; MAIN_A_FLAGS=$(group_info "main_a" | awk '{print $8}')
-    
+
     MAIN_B_TOTAL_SIZE=$(echo "$PRODUCT_B_SIZE + $SYSTEM_B_SIZE + $VENDOR_B_SIZE" | bc || echo "0")
     MAIN_B_TOTAL_MB=$(b2mb "$MAIN_B_TOTAL_SIZE") ; MAIN_B_TOTAL_GB=$(b2gb "$MAIN_B_TOTAL_SIZE")
     MAIN_B_MAX_SIZE=$(group_info "main_b" | awk '{print $5}') ; MAIN_B_MAX_MB=$(b2mb "$MAIN_B_MAX_SIZE")
     MAIN_B_MAX_GB=$(b2gb "$MAIN_B_MAX_SIZE") MAIN_B_FLAGS=$(group_info "main_b" | awk '{print $8}')
   }
-  
 }
 
 dump_log() {
@@ -286,12 +285,12 @@ Group Table Information:
 *  Name: $GROUP_DEFAULT_NAME
      Maximum size: $GROUP_DEFAULT_MAX_SIZE B
      Flags: $GROUP_DEFAULT_FLAGS
-     
+
 *  Name: main_a
      Current size: $MAIN_A_TOTAL_SIZE B
      Maximum size: $MAIN_A_MAX_SIZE B
      Flags: $MAIN_A_FLAGS
-     
+
 *  Name: main_b
      Current size: $MAIN_B_TOTAL_SIZE B
      Maximum size: $MAIN_B_MAX_SIZE B
@@ -380,8 +379,14 @@ extract_img() {
       fi
       echo -n "Extract partitions from super.img ?\n[y/n]: " && read input && echo ""
       case "$input" in
-          y) echo "\nExtracting partitons from super.img...\n" && $imjtool super.img extract && init_job=1 && extract_img ;;
-          n) init_job=2 ; main_menu ;; *) main_menu ;;
+          y)
+             echo "\nExtracting partitons from super.img...\n"
+             $imjtool ./super.img extract
+             init_job=1 && extract_img ;;
+          n)
+             init_job=2 ; main_menu ;;
+          *)
+             main_menu ;;
       esac
   else
       echo -n "\nPull super.img from /dev/block/by-name/super ?\n[y/n]: " && read input && echo ""
