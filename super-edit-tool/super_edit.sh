@@ -2,30 +2,24 @@
 
 detect_env() {
   detect_arch() {
-    BIN_DIR=$(pwd)/bin
-    input=$(uname -m)
-    case $input in
-        arm) export ARCH=arm ;;
-        aarch64) export ARCH=arm64 ;;
-        x86) export ARCH=x86 ;;
-        x86_64) export ARCH=x86_64 ;;
+    BIN_DIR=$(pwd)/bin ; i=$(uname -m)
+    case $i in
+        arm) export ARCH=arm ;; aarch64) export ARCH=arm64 ;;
+        x86) export ARCH=x86 ;; x86_64) export ARCH=x86_64 ;;
     esac
   }
   load_binaries() {
-    BIN_EXEC="${BIN_DIR}/${ARCH}" ; input=$(uname -o)
-    case $input in Android) export OS=android; BIN_EXEC="${BIN_DIR}/${ARCH}/${OS}" ;; esac
-    for cmd in $(ls -1 "$BIN_EXEC"); do [ -x "$BIN_EXEC/$cmd" ] && { export $cmd=$BIN_EXEC/$cmd ; } done
+    BIN_EXEC="${BIN_DIR}/${ARCH}" ; i=$(uname -o)
+    case $i in Android) export OS=android ; BIN_EXEC="${BIN_DIR}/${ARCH}/${OS}" ;; esac
+    for cmd in $(ls -1 "$BIN_EXEC"); do [ -x "$BIN_EXEC/$cmd" ] && { chmod +x $BIN_EXEC/* ; export $cmd=$BIN_EXEC/$cmd ; } done
   }
   set_global_vars() {
     MOUNTED_IMGS=$(sudo $busybox mount | grep /mounted/ | awk '{print $3}' | sed 's/.*\///')
     SCRIPT_NAME="$(basename "$0" | sed 's|.*/||')"
-    LOG_FILE=".log" 
-    TMP_FILE1=".tmp.1" ; TMP_FILE2=".tmp.2"
+    LOG_FILE=".log" ; TMP_FILE1=".tmp.1" ; TMP_FILE2=".tmp.2"
     silence() { "$@" >/dev/null 2>&1; }
   }
-  detect_arch
-  load_binaries
-  set_global_vars
+  detect_arch ; load_binaries ; set_global_vars
 }
 
 cleanup() {
@@ -48,25 +42,13 @@ b2kb() { bcalc "$1" kb; } && b2mb() { bcalc "$1" mb; } && b2gb() { bcalc "$1" gb
 
 calculate_hash() {
   compare_hashes() {
-    find_hash_file() { HASH_FILE=".previous_hash" ;
-      [ -f "$HASH_FILE" ] && { previous_log=$(cat "$HASH_FILE") ; return 0 ; }
-      echo "\nNo previous hash found. This might be the first run."
-    }
-    find_log_file() {
-      [ ! -f "$LOG_FILE" ] && { echo "Generating hashes...\n" && touch $LOG_FILE; return 0; }
-    }
-    hash_changed() {
-      DISPLAY_HASH=$(echo "Current hash: $current_hash | Previous hash: $previous_log")
-    }
-    calculate_hash() { current_hash=$(sha256sum "$LOG_FILE" | awk '{print substr($1, 1, 7)}')
-      [ "$current_hash" != "$previous_log" ] && { hash_changed; return 0; }
-      DISPLAY_HASH=$(echo "Current hash: $current_hash | Previous hash: $previous_log")
-    }
+    find_hash_file() { HASH_FILE=".previous_hash" ; [ -f "$HASH_FILE" ] && { previous_log=$(cat "$HASH_FILE") ; return 0 ; } || echo "\nNo previous hash found. This might be the first run." ; }
+    find_log_file() { [ ! -f "$LOG_FILE" ] && { echo "Generating hashes...\n" && touch "$LOG_FILE" ; return 0 ; } ; }
+    hash_changed() { DISPLAY_HASH=$(echo "Current hash: $current_hash | Previous hash: $previous_log") ; }
+    calculate_hash() { current_hash=$(sha256sum "$LOG_FILE" | awk '{print substr($1, 1, 7)}') ; [ "$current_hash" != "$previous_log" ] && { hash_changed ; return 0 ; } || DISPLAY_HASH=$(echo "Current hash: $current_hash | Previous hash: $previous_log") ; }
     find_hash_file ; find_log_file ; calculate_hash
   }
-  compare_hashes
-  echo "$current_hash" > "$HASH_FILE"
-  HASHSTAMP=$(echo _$current_hash)
+  compare_hashes && echo "$current_hash" > "$HASH_FILE" && HASHSTAMP=$(echo _$current_hash)
 }
 
 metadata() {
@@ -101,31 +83,29 @@ metadata() {
     METADATA_MAX_SIZE=$(grep -e "Metadata max size: " $TMP_FILE1 | awk '{print $4}')
     METADATA_SLOT_COUNT=$(grep -e "Metadata slot count: " $TMP_FILE1 | awk '{print $4}')
     HEADER_FLAGS=$(grep -e "Header flags: " $TMP_FILE1 | awk '{print $3}')
-    BLOCK_DEVICE_TABLE=$(grep -B1 -e "Block device table:" -A5 $TMP_FILE1)
+    BLOCK_DEVICE_TABLE=$(grep -e "Block device table:" -A5 $TMP_FILE1 | sed '1,2d')
   }
 
   [ -f "./extracted/product_a.img" ] && {
     PRODUCT_A_NAME="product_a"
     PRODUCT_A_SIZE=$(size "./extracted/product_a.img" || echo "0")
     PRODUCT_A_SIZE_MB=$(b2mb "$PRODUCT_A_SIZE") ; PRODUCT_A_SIZE_GB=$(b2gb "$PRODUCT_A_SIZE")
-    PRODUCT_A_ATTRIBUTES=$(attributes "product_a")
-    PRODUCT_A_EXTENTS=$(extents "product_a")
+    PRODUCT_A_ATTRIBUTES=$(a() { [ -z "$(attributes product_a)" ] && {echo "none"} ; } && a || echo "none") ; PRODUCT_A_EXTENTS=$(extents "product_a")
     PRODUCT_A_LAYOUT=$(echo "$SUPER_LAYOUT" | grep "product_a" || echo "0")
     PRODUCT_A_SECTOR_BEGIN=$(parse "$PRODUCT_A_LAYOUT" 1)
     PRODUCT_A_SECTOR_FINISH=$(parse "$PRODUCT_A_LAYOUT" 3 | sanitize)
     PRODUCT_A_SECTOR_SIZE=$(parse "$PRODUCT_A_LAYOUT" 5 | sanitize)
-    PRODUCT_A_GROUP_NAME=$(image_group "product_a" | sed '1d;3,5d' | awk '{print $2}')
+    PRODUCT_A_GROUP_NAME=$(a() { [ -z "$(image_group product_a | sed '1d;3,5d' | awk '{print $2}')" ] && {echo "main_a"} ; } && a || echo "main_a")
 
     PRODUCT_B_NAME="product_b"
     PRODUCT_B_SIZE=$(size "./extracted/product_b.img" || echo "0")
     PRODUCT_B_SIZE_MB=$(b2mb "$PRODUCT_B_SIZE") ; PRODUCT_B_SIZE_GB=$(b2gb "$PRODUCT_B_SIZE")
-    PRODUCT_B_ATTRIBUTES=$(attributes "product_b")
-    PRODUCT_B_EXTENTS=$(extents "product_b")
+    PRODUCT_B_ATTRIBUTES=$(a() { [ -z "$(attributes product_b)" ] && {echo "none"} ; } && a || echo "none") ; PRODUCT_B_EXTENTS=$(extents "product_b")
     PRODUCT_B_LAYOUT=$(echo "$SUPER_LAYOUT" | grep "product_b" || echo "0")
     PRODUCT_B_SECTOR_BEGIN=$(parse "$PRODUCT_B_LAYOUT" 1)
     PRODUCT_B_SECTOR_FINISH=$(parse "$PRODUCT_B_LAYOUT" 3 | sanitize)
     PRODUCT_B_SECTOR_SIZE=$(parse "$PRODUCT_B_LAYOUT" 5 | sanitize)
-    PRODUCT_B_GROUP_NAME=$(image_group "product_b" | sed '1d;3,5d' | awk '{print $2}')
+    PRODUCT_B_GROUP_NAME=$(a() { [ -z "$(image_group product_b | sed '1d;3,5d' | awk '{print $2}')" ] && {echo "main_b"} ; } && a || echo "main_b")
     PRODUCT_TOTAL_SIZE=$(echo "$PRODUCT_A_SIZE + $PRODUCT_B_SIZE" | bc)
     PRODUCT_TOTAL_MB=$(b2mb "$PRODUCT_TOTAL_SIZE") ; PRODUCT_TOTAL_GB=$(b2gb "$PRODUCT_TOTAL_SIZE")
   }
@@ -134,24 +114,22 @@ metadata() {
     SYSTEM_A_NAME="system_a"
     SYSTEM_A_SIZE=$(size "./extracted/system_a.img" || echo "0")
     SYSTEM_A_SIZE_MB=$(b2mb "$SYSTEM_A_SIZE") ; SYSTEM_A_SIZE_GB=$(b2gb "$SYSTEM_A_SIZE")
-    SYSTEM_A_ATTRIBUTES=$(attributes "system_a")
-    SYSTEM_A_EXTENTS=$(extents "system_a")
+    SYSTEM_A_ATTRIBUTES=$(a() { [ -z "$(attributes system_a)" ] && {echo "none"} ; } && a || echo "none") ; SYSTEM_A_EXTENTS=$(extents "system_a" || echo "0")
     SYSTEM_A_LAYOUT=$(echo "$SUPER_LAYOUT" | grep "system_a" || echo "0")
     SYSTEM_A_SECTOR_BEGIN=$(parse "$SYSTEM_A_LAYOUT" 1)
     SYSTEM_A_SECTOR_FINISH=$(parse "$SYSTEM_A_LAYOUT" 3 | sanitize)
     SYSTEM_A_SECTOR_SIZE=$(parse "$SYSTEM_A_LAYOUT" 5 | sanitize)
-    SYSTEM_A_GROUP_NAME=$(image_group "system_a" | sed '1d;3,5d' | awk '{print $2}')
+    SYSTEM_A_GROUP_NAME=$(a() { [ -z "$(image_group system_a | sed '1d;3,5d' | awk '{print $2}')" ] && {echo "main_a"} ; } && a || echo "main_a")
 
     SYSTEM_B_NAME="system_b"
     SYSTEM_B_SIZE=$(size "./extracted/system_b.img" || echo "0")
     SYSTEM_B_SIZE_MB=$(b2mb "$SYSTEM_B_SIZE") ; SYSTEM_B_SIZE_GB=$(b2gb "$SYSTEM_B_SIZE")
-    SYSTEM_B_ATTRIBUTES=$(attributes "system_b")
-    SYSTEM_B_EXTENTS=$(extents "system_b")
+    SYSTEM_B_ATTRIBUTES=$(a() { [ -z "$(attributes system_b)" ] && {echo "none"} ; } && a || echo "none") ; SYSTEM_B_EXTENTS=$(extents "system_b" || echo "0")
     SYSTEM_B_LAYOUT=$(echo "$SUPER_LAYOUT" | grep "system_b" || echo "0")
     SYSTEM_B_SECTOR_BEGIN=$(parse "$SYSTEM_B_LAYOUT" 1 )
     SYSTEM_B_SECTOR_FINISH=$(parse "$SYSTEM_B_LAYOUT" 3 | sanitize)
     SYSTEM_B_SECTOR_SIZE=$(parse "$SYSTEM_B_LAYOUT" 5 | sanitize)
-    SYSTEM_B_GROUP_NAME=$(image_group "system_b" | sed '1d;3,5d' | awk '{print $2}')
+    SYSTEM_B_GROUP_NAME=$(a() { [ -z "$(image_group system_b | sed '1d;3,5d' | awk '{print $2}')" ] && {echo "main_b"} ; } && a || echo "main_b")
     SYSTEM_TOTAL_SIZE=$(echo "$SYSTEM_A_SIZE + $SYSTEM_B_SIZE" | bc)
     SYSTEM_TOTAL_MB=$(b2mb "$SYSTEM_TOTAL_SIZE") ; SYSTEM_TOTAL_GB=$(b2gb "$SYSTEM_TOTAL_SIZE")
   }
@@ -160,24 +138,22 @@ metadata() {
     VENDOR_A_NAME="vendor_a"
     VENDOR_A_SIZE=$(size "./extracted/vendor_a.img" || echo "0")
     VENDOR_A_SIZE_MB=$(b2mb "$VENDOR_A_SIZE") ; VENDOR_A_SIZE_GB=$(b2gb "$VENDOR_A_SIZE")
-    VENDOR_A_ATTRIBUTES=$(attributes "vendor_a")
-    VENDOR_A_EXTENTS=$(extents "vendor_a")
+    VENDOR_A_ATTRIBUTES=$(a() { [ -z "$(attributes vendor_a)" ] && {echo "none"} ; } && a || echo "none") ; VENDOR_A_EXTENTS=$(extents "vendor_a" || echo "0")
     VENDOR_A_LAYOUT=$(echo "$SUPER_LAYOUT" | grep "vendor_a" || echo "0")
     VENDOR_A_SECTOR_BEGIN=$(parse "$VENDOR_A_LAYOUT" 1 )
     VENDOR_A_SECTOR_FINISH=$(parse "$VENDOR_A_LAYOUT" 3 | sanitize)
     VENDOR_A_SECTOR_SIZE=$(parse "$VENDOR_A_LAYOUT" 5 | sanitize)
-    VENDOR_A_GROUP_NAME=$(image_group "vendor_a" | sed '1d;3,5d' | awk '{print $2}')
+    VENDOR_A_GROUP_NAME=$(a() { [ -z "$(image_group vendor_a | sed '1d;3,5d' | awk '{print $2}')" ] && {echo "main_a"} ; } && a || echo "main_a")
 
     VENDOR_B_NAME="vendor_b"
     VENDOR_B_SIZE=$(size "./extracted/vendor_b.img" || echo "0")
     VENDOR_B_SIZE_MB=$(b2mb "$VENDOR_B_SIZE") ; VENDOR_B_SIZE_GB=$(b2gb "$VENDOR_B_SIZE")
-    VENDOR_B_ATTRIBUTES=$(attributes "vendor_b")
-    VENDOR_B_EXTENTS=$(extents "vendor_b" || echo "0")
+    VENDOR_B_ATTRIBUTES=$(a() { [ -z "$(attributes vendor_b)" ] && {echo "none"} ; } && a || echo "none") ; VENDOR_B_EXTENTS=$(extents "vendor_b" || echo "0")
     VENDOR_B_LAYOUT=$(echo "$SUPER_LAYOUT" | grep "vendor_b" || echo "0")
     VENDOR_B_SECTOR_BEGIN=$(parse "$VENDOR_B_LAYOUT" 1)
     VENDOR_B_SECTOR_FINISH=$(parse "$VENDOR_B_LAYOUT" 3 | sanitize)
     VENDOR_B_SECTOR_SIZE=$(parse "$VENDOR_B_LAYOUT" 5 | sanitize)
-    VENDOR_B_GROUP_NAME=$(image_group "vendor_b" | sed '1d;3,5d' | awk '{print $2}')
+    VENDOR_B_GROUP_NAME=$(a() { [ -z "$(image_group vendor_b | sed '1d;3,5d' | awk '{print $2}')" ] && {echo "main_b"} ; } && a || echo "main_b")
     VENDOR_TOTAL_SIZE=$(echo "$VENDOR_A_SIZE + $VENDOR_B_SIZE" | bc)
     VENDOR_TOTAL_MB=$(b2mb "$VENDOR_TOTAL_SIZE") ; VENDOR_TOTAL_GB=$(b2gb "$VENDOR_TOTAL_SIZE")
   }
@@ -202,9 +178,7 @@ dump_log() {
 
 {
 cat << EOF
-------------------------
- Super Partition Table:
-------------------------
+$(ascii_box "Super Partition Table:")
 
 * Name: $PRODUCT_A_NAME
    Group: $PRODUCT_A_GROUP_NAME
@@ -278,9 +252,7 @@ cat << EOF
                 $VENDOR_TOTAL_MB MB
                 $VENDOR_TOTAL_GB GB
 
-------------------------
-Group Table Information:
-------------------------
+$(ascii_box "Group Table Information:")
 
 *  Name: $GROUP_DEFAULT_NAME
      Maximum size: $GROUP_DEFAULT_MAX_SIZE B
@@ -296,53 +268,53 @@ Group Table Information:
      Maximum size: $MAIN_B_MAX_SIZE B
      Flags: $MAIN_B_FLAGS
 
-------------------------
-Super Overview:
-------------------------
-
-$METADATA_INFO
+$(ascii_box "Block device table:")
 
 $BLOCK_DEVICE_TABLE
 
+$(ascii_box "Super Layout:")
+
 $SUPER_LAYOUT
 
-$SUPER_PARTITION_NAME:        $SUPER_SIZE B $SUPER_TOTAL_MB MB $SUPER_TOTAL_GB GB
+$(ascii_box "Super Overview:")
 
-Image sizes:  $IMAGE_SIZE_TOTAL B $IMAGE_SIZE_TOTAL_MB MB $IMAGE_SIZE_TOTAL_GB GB
+$SUPER_PARTITION_NAME max size: $SUPER_SIZE B $SUPER_TOTAL_MB MB $SUPER_TOTAL_GB GB
 
-main_a:       $MAIN_A_TOTAL_SIZE B $MAIN_A_TOTAL_MB MB $MAIN_A_TOTAL_GB GB
-|_$PRODUCT_A_NAME:  $PRODUCT_A_SIZE B $PRODUCT_A_SIZE_MB MB $PRODUCT_A_SIZE_GB GB
-|_$SYSTEM_A_NAME:   $SYSTEM_A_SIZE B $SYSTEM_A_SIZE_MB MB $SYSTEM_A_SIZE_GB GB
-|_$VENDOR_A_NAME:   $VENDOR_A_SIZE B $VENDOR_A_SIZE_MB MB $VENDOR_A_SIZE_GB GB
+Image sizes:    $IMAGE_SIZE_TOTAL B $IMAGE_SIZE_TOTAL_MB MB $IMAGE_SIZE_TOTAL_GB GB
 
-main_b:                $MAIN_B_TOTAL_SIZE B       $MAIN_B_TOTAL_MB MB      $MAIN_B_TOTAL_GB GB
-|_$PRODUCT_B_NAME:           $PRODUCT_B_SIZE B       $PRODUCT_B_SIZE_MB MB    $PRODUCT_B_SIZE_GB GB
-|_$SYSTEM_B_NAME:            $SYSTEM_B_SIZE B       $SYSTEM_B_SIZE_MB MB    $SYSTEM_B_SIZE_GB GB
-|_$VENDOR_B_NAME:            $VENDOR_B_SIZE B       $VENDOR_B_SIZE_MB MB    $VENDOR_B_SIZE_GB GB
+main_a:         $MAIN_A_TOTAL_SIZE B $MAIN_A_TOTAL_MB MB $MAIN_A_TOTAL_GB GB
+|
+|_$PRODUCT_A_NAME:    $PRODUCT_A_SIZE B $PRODUCT_A_SIZE_MB MB $PRODUCT_A_SIZE_GB GB
+|_$SYSTEM_A_NAME:     $SYSTEM_A_SIZE B $SYSTEM_A_SIZE_MB MB $SYSTEM_A_SIZE_GB GB
+|_$VENDOR_A_NAME:     $VENDOR_A_SIZE B $VENDOR_A_SIZE_MB MB $VENDOR_A_SIZE_GB GB
 
-------------------------
-lpmake command:
-------------------------
+main_b:                  $MAIN_B_TOTAL_SIZE B       $MAIN_B_TOTAL_MB MB    $MAIN_B_TOTAL_GB GB
+|
+|_$PRODUCT_B_NAME:             $PRODUCT_B_SIZE B       $PRODUCT_B_SIZE_MB MB    $PRODUCT_B_SIZE_GB GB
+|_$SYSTEM_B_NAME:              $SYSTEM_B_SIZE B       $SYSTEM_B_SIZE_MB MB    $SYSTEM_B_SIZE_GB GB
+|_$VENDOR_B_NAME:              $VENDOR_B_SIZE B       $VENDOR_B_SIZE_MB MB    $VENDOR_B_SIZE_GB GB
+
+$(ascii_box "lpmake command")
 
 lpmake \
 --metadata-size $METADATA_MAX_SIZE \
 --super-name=$SUPER_PARTITION_NAME \
 --device-size=$SUPER_SIZE \
 --metadata-slots=$METADATA_SLOT_COUNT \
---group=main_a:$MAIN_A_MAX_SIZE \
---group=main_b:$MAIN_B_MAX_SIZE \
+--group=main_a:$MAIN_A_TOTAL_SIZE \
+--group=main_b:$MAIN_B_TOTAL_SIZE \
 --image=$PRODUCT_A_NAME=./extracted/$PRODUCT_A_NAME.img \
---partition=$PRODUCT_A_NAME:$PRODUCT_A_ATTRIBUTES:$PRODUCT_A_SIZE:$MAIN_A_NAME \
+--partition=$PRODUCT_A_NAME:$PRODUCT_A_ATTRIBUTES:$PRODUCT_A_SIZE:$PRODUCT_A_GROUP_NAME \
 --image=$PRODUCT_B_NAME=./extracted/$PRODUCT_B_NAME.img \
---partition=$PRODUCT_B_NAME:$PRODUCT_B_ATTRIBUTES:$PRODUCT_B_SIZE:$MAIN_B_NAME \
+--partition=$PRODUCT_B_NAME:$PRODUCT_B_ATTRIBUTES:$PRODUCT_B_SIZE:$PRODUCT_B_GROUP_NAME \
 --image=$SYSTEM_A_NAME=./extracted/$SYSTEM_A_NAME.img \
---partition=$SYSTEM_A_NAME:$SYSTEM_A_ATTRIBUTES:$SYSTEM_A_SIZE:$MAIN_A_NAME \
+--partition=$SYSTEM_A_NAME:$SYSTEM_A_ATTRIBUTES:$SYSTEM_A_SIZE:$SYSTEM_A_GROUP_NAME \
 --image=$SYSTEM_B_NAME=./extracted/$SYSTEM_B_NAME.img \
---partition=$SYSTEM_B_NAME:$SYSTEM_B_ATTRIBUTES:$SYSTEM_B_SIZE:$MAIN_B_NAME \
+--partition=$SYSTEM_B_NAME:$SYSTEM_B_ATTRIBUTES:$SYSTEM_B_SIZE:$SYSTEM_B_GROUP_NAME \
 --image=$VENDOR_A_NAME=./extracted/$VENDOR_A_NAME.img \
---partition=$VENDOR_A_NAME:$VENDOR_A_ATTRIBUTES:$VENDOR_A_SIZE:$MAIN_A_NAME \
+--partition=$VENDOR_A_NAME:$VENDOR_A_ATTRIBUTES:$VENDOR_A_SIZE:$VENDOR_A_GROUP_NAME \
 --image=$VENDOR_B_NAME=./extracted/$VENDOR_B_NAME.img \
---partition=$VENDOR_B_NAME:$VENDOR_B_ATTRIBUTES:$VENDOR_B_SIZE:$MAIN_B_NAME \
+--partition=$VENDOR_B_NAME:$VENDOR_B_ATTRIBUTES:$VENDOR_B_SIZE:$VENDOR_B_GROUP_NAME \
 --virtual-ab \
 --sparse \
 --output ./out/new_super$HASHSTAMP.img
@@ -362,39 +334,43 @@ dump_variables() {
     [ -n "$var_name" ] && [ "${var_name#\#}" = "$var_name" ] && { var_value=$(eval echo "\$$var_name") ; output+="$var_name=$var_value\n" ; }
   done < $TMP_FILE2
   [ -n "$output" ] && { echo -e "$output" | grep -v "^_=" >> $LOG_FILE ; }
-  rm -f $TMP_FILE2 && cat $LOG_FILE
-  return 0
+  rm -f $TMP_FILE2 && cat $LOG_FILE && return 0
+}
+
+list_partitions() {
+  print() {
+    local i="$1" && local d=$(pwd) && echo "Navigating to:\n$i" && cd "$i" || return 1
+    echo "" && ascii_box "Raw Partition <- Partition Name" && echo ""
+    find . -maxdepth 1 -type l -printf "%l <- %p\n" | sort | sed "s| \./| |"
+    echo "" && ascii_box "Partition Name ->  Raw Partition" && echo ""
+    find . -maxdepth 1 -type l -printf "%p -> %l\n" | sort -k2 | sed "s|^\./| |"
+    cd "$d" || return 1
+  }
+  print "/dev/block/by-name" && echo "" && main_menu
 }
 
 extract_img() {
 ## Extract super or sub-partitions of super
   if [ -f "./super.img" ]; then
-      STATUS="\nInitialized.\n\nFound super.img."
+      [ "$start_option" = debug ] && { STATUS="\nInitialized in Debug Mode.\n\nFound super.img" ; } || STATUS="\nInitialized.\n\nFound super.img."
       if silence ls ./extracted/*.img ; then
-          STATUS+="\nImages are located in ./extracted \n"
-          [ "$init_job" -eq 1 ] && { init_job=0 && main_menu ; }
+          STATUS+="\nImages are located in ./extracted \n" && [ "$init_job" -eq 1 ] && { init_job=0 && main_menu ; }
       else
-          STATUS+="\nNo partitions have been extracted.\n"
-          [ "$init_job" -eq 2 ] && { init_job=0 && main_menu ; }
+          STATUS+="\nNo partitions have been extracted.\n" && [ "$init_job" -eq 2 ] && { init_job=0 && main_menu ; }
       fi
       echo -n "Extract partitions from super.img ?\n[y/n]: " && read input && echo ""
       case "$input" in
-          y)
-             echo "\nExtracting partitons from super.img...\n"
-             $imjtool ./super.img extract
-             init_job=1 && extract_img ;;
-          n)
-             init_job=2 ; main_menu ;;
-          *)
-             main_menu ;;
+          y) echo "\nExtracting partitons from super.img...\n" && $imjtool super.img extract && init_job=1 && extract_img ;;
+          n) init_job=2 ; main_menu ;;
+          *) main_menu ;;
       esac
   else
+      [ "$start_option" = debug ] && { STATUS="\nInitialized in Debug Mode.\n\nNo super.img found." ; } || STATUS="\nInitialized.\n\nNo super.img found."
       echo -n "\nPull super.img from /dev/block/by-name/super ?\n[y/n]: " && read input && echo ""
       case "$input" in
-          y)
-             echo "Dumping /dev/block/by-name/super to ./super.img ..."
-             dd if=/dev/block/by-name/super of=./super.img bs=4096 status=progress
-             echo "\nsuper.img dumped! \n" && extract_img ;;
+          y) echo "Dumping /dev/block/by-name/super to ./super.img ..."
+              dd if=/dev/block/by-name/super of=./super.img bs=2048 status=progress
+              echo "\nsuper.img dumped! \n" && extract_img ;;
           *) main_menu ;;
       esac
   fi
@@ -415,10 +391,8 @@ mount_img() {
     esac
   }
   ascii_box "What partition would you like to mount?"
-  echo "\nMountable partitions:\n"
-  ls -1 ./extracted | sed -e 's/\.img$//'
-  echo -n "\nb) Main Menu\n\n>> "
-  read IMG_NAME && echo ""
+  echo "\nMountable partitions:\n" && ls -1 ./extracted | sed -e 's/\.img$//'
+  echo -n "\nb) Main Menu\n\n>> " && read IMG_NAME && echo ""
   case "$IMG_NAME" in
     system*) MOUNT_POINT="./mounted/system" && mount ;;
     vendor*) MOUNT_POINT="./mounted/system/vendor" && mount ;;
@@ -476,16 +450,12 @@ unmount_img() {
 
 make_super() {
 ## Generate lpmake command from super & its sub-partitions
-  dump_log
-  cat $LOG_FILE
+  dump_log && cat $LOG_FILE
   ascii_box "Saved lpmake command to: ./$LOG_FILE"
   echo -n "\nBuild new_super$HASHSTAMP.img ?\n[y/n]: "
   read make_new_super && echo ""
   case "$make_new_super" in
-      [Yy])
-         ascii_box "Building new_super$HASHSTAMP.img..."
-         silence mkdir ./out && eval $(sed -n '{134,148p}' $LOG_FILE)
-         echo "\nGenerated new super!" && main_menu ;;
+      y) ascii_box "Building new_super$HASHSTAMP.img..." && echo "" && silence mkdir ./out && eval $(sed -n '{134,148p}' $LOG_FILE) && echo "\nGenerated new super!" && main_menu ;;
       *) main_menu ;;
   esac
 }
@@ -508,7 +478,7 @@ options_list() {
       func_acl file_check options_list ascii_box ui_variables compare_hashes \
       find_hash_file find_log_file main_menu unmount mount dump_log \
       clean silence b2kb b2mb b2gb attributes extents name group group_name \
-      image_group group_info"
+      image_group group_info sort_partitions print_partitions"
     allow=""
     list_func=$(grep '^[[:space:]]*[a-zA-Z_][a-zA-Z0-9_]*[[:space:]]*()' "$input" | sed 's/^[[:space:]]*\([a-zA-Z_][a-zA-Z0-9_]*\).*/\1/')
     for func in $list_func; do case "$deny" in *"$func"*) ;; *) allowed_func="$allowed_func$func " ;; esac done
@@ -566,24 +536,26 @@ main_menu() {
 
 file_check() {
   [ -f "./super.img" ] && { init_job=$(silence ls ./extracted/*.img && echo 1 || echo 2) ; extract_img ; return 0 ; }
-   echo "\nNo super.img found within super-edit !\n\n1] Continue without using a super.img\n2] Pull or use super.img from device\nq] Quit super-edit\n"
+    echo "\nNo super.img found within super-edit !\n\n1] Continue without using a super.img\n2] Pull or use super.img from device\nq] Quit super-edit\n"
     echo -n "Choice: "
-    read input; case "$input" in
+    read i; case "$i" in
         1) main_menu ;; 2) extract_img ;; q) exit 0 ;; esac
 }
 
 init() { detect_env; calculate_hash; silence metadata;
-  debug_mode() { STATUS="\nInitialized in Debug Mode.\n" ; dump_variables ; file_check ; main_menu ; }
-  [ "$start_option" = debug ] && { debug_mode ; return 0 ; }
-  STATUS="\nInitialized.\n" && file_check
-}
-
-run() {
-  init
-  main_menu
+  [ "$start_option" = debug ] && { start_option="debug" ; dump_variables ; }
+  file_check ; main_menu
 }
 
 ## Start Options
-start_option=$1
-## Start Super Edit
-run
+start_option="$1"
+## Run Super Edit
+init
+
+##
+## ./super_edit.sh debug
+##
+## init -> detect_env -> calculate_hash ->
+## silience metadata -> refresh_sizes -> dump_variables
+## file_check -> extract_img -> main_menu
+##
