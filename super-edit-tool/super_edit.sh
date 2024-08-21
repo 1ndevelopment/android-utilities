@@ -360,7 +360,7 @@ extract_img() {
       fi
       echo -n "Extract partitions from super.img ?\n[y/n]: " && read input && echo ""
       case "$input" in
-          y) echo "\nExtracting partitons from super.img...\n" && $imjtool super.img extract && init_job=1 && extract_img ;;
+          y) echo "\nExtracting partitons from super.img...\n" && $imjtool super.img extract && init_job=1 && init ;;
           n) init_job=2 ; main_menu ;;
           *) main_menu ;;
       esac
@@ -460,7 +460,55 @@ make_super() {
   esac
 }
 
+edit_boot_img() {
+  boot_name="boot_a"
+  silence mkdir -p ./extracted/boot/unpacked/ramdisk/
+
+  extract() {
+    img_path="/dev/block/by-name"
+    extract_boot_img() { dd if=$img_path/$boot_name of=./extracted/boot/$boot_name.img bs=2048 status=progress && echo "\n$boot_name.img extracted from $img_path" ; }
+    unpack_boot() { cd ./extracted/boot/unpacked/ && $magiskboot unpack -h ../$boot_name.img && cd ../../.. && echo "\n$boot_name.img unpacked.\n" ; }
+    unpack_ramdisk() { cd ./extracted/boot/unpacked/ramdisk && $magiskboot cpio ../ramdisk.cpio extract && cd ../../../../ && echo "\n$boot_name.img Ramdisk unpacked.\n" ; }
+    if [ -f "./extracted/boot/$boot_name.img" ]; then
+      if [ -f "./extracted/boot/unpacked/header" ]; then
+        if [ -f "./extracted/boot/unpacked/ramdisk/init" ]; then
+          echo "$boot_name.img is Extracted and Ramdisk is unpacked @\n./extracted/boot/unpacked/ramdisk"
+          prompt
+        else
+          unpack_ramdisk ; extract
+        fi
+      else
+        unpack_boot ; $tree ./extracted/boot/ ; extract
+      fi
+    else
+      extract_boot ; extract
+    fi
+  }
+  repack() {
+    cd ./extracted/boot/unpacked && rm ramdisk.cpio && cd ramdisk
+    find . cpio ../ramdisk.cpio && cd .. && rm -r ramdisk
+    $magiskboot repack ../$boot_name.img
+    prompt
+  }
+
+  prompt() {
+    echo "" && ascii_box "Boot image editor"
+    echo -n "\n1] Extract ramdisk from boot.img\n2] Repack ramdisk into boot.img\n3] List contents of boot.img\n\nb] Main Menu\n\n>> " && read i && echo ""
+    case "$i" in
+        1) extract ;; 2) repack ;;
+        3) ls -1 ./extracted/boot/ ./extracted/boot/unpacked/ ./extracted/boot/unpacked/ramdisk/ && prompt ;;
+        b) echo "Heading back to Main Menu...\n" && main_menu ;;
+        q) echo "Qutting..." && exit 0 ;;
+        *) echo "Invalid choice, try again.\n" && prompt ;;
+    esac
+  }
+  prompt
+}
+
 #Remove fileencryption from fstab
+#./extracted/boot/unpacked/ramdisk/system/etc/recovery.fstab
+#
+#./mounted/system/vendor/etc/fstab.mt6765
 #system /system ext4 rw wait,avb=vbmeta_system,logical,first_stage_mount,slotselect
 #vendor /vendor ext4 rw wait,avb,logical,first_stage_mount,slotselect
 #product /product ext4 rw wait,avb,logical,first_stage_mount,slotselect
@@ -478,7 +526,8 @@ options_list() {
       func_acl file_check options_list ascii_box ui_variables compare_hashes \
       find_hash_file find_log_file main_menu unmount mount dump_log \
       clean silence b2kb b2mb b2gb attributes extents name group group_name \
-      image_group group_info sort_partitions print_partitions"
+      image_group group_info sort_partitions print_partitions extract_boot_img \
+      unpack_boot unpack_ramdisk repack_boot repack_ramdisk prompt"
     allow=""
     list_func=$(grep '^[[:space:]]*[a-zA-Z_][a-zA-Z0-9_]*[[:space:]]*()' "$input" | sed 's/^[[:space:]]*\([a-zA-Z_][a-zA-Z0-9_]*\).*/\1/')
     for func in $list_func; do case "$deny" in *"$func"*) ;; *) allowed_func="$allowed_func$func " ;; esac done
@@ -536,9 +585,8 @@ main_menu() {
 
 file_check() {
   [ -f "./super.img" ] && { init_job=$(silence ls ./extracted/*.img && echo 1 || echo 2) ; extract_img ; return 0 ; }
-    echo "\nNo super.img found within super-edit !\n\n1] Continue without using a super.img\n2] Pull or use super.img from device\nq] Quit super-edit\n"
-    echo -n "Choice: "
-    read i; case "$i" in
+    echo -n "\nNo super.img found within super-edit !\n\n1] Continue without using a super.img\n2] Pull or use super.img from device\nq] Quit super-edit\n\nChoice: " && read i
+    echo"" && case "$i" in
         1) main_menu ;; 2) extract_img ;; q) exit 0 ;; esac
 }
 
