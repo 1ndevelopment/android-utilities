@@ -1,19 +1,16 @@
 #!/system/bin/sh
 
-silence() { "$@" >/dev/null 2>&1; }
-
 backup_dir="/sdcard/termux_pkgs"
-silence mkdir -p "$backup_dir"
 
+silence() { "$@" >/dev/null 2>&1; }
 sha() { sha256sum "$backup_dir"/"$1" | awk '{print substr($1, length($1) - 6)}' ; }
 list_installed() { dpkg --get-selections | awk '{print $1}' | sed 's|/.*||' | tr '\n' ' ' | sed 's/ $/\n/' ; }
 
 ascii_box() {
-  echo ""
   ti="$1" ; mw=$((COLUMNS - 8)) ; bw=$mw
   b=$(printf '%*s' "$((bw-2))" | tr ' ' '=')
   pb="x${b}x" ; cw=$((bw - 6))
-  echo "$pb\n|$(printf '%*s' "$((bw-2))")|" ; l=""
+  echo "\n$pb\n|$(printf '%*s' "$((bw-2))")|" ; l=""
   for w in $ti; do
     if [ $((${#l} + ${#w} + 1)) -le $cw ]; then
       [ -n "$l" ] && l+=" " ; l+="$w"
@@ -72,4 +69,5 @@ prompt() {
   esac
 }
 
+silence mkdir -p "$backup_dir"
 prompt
