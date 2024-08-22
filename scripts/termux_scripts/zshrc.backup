@@ -7,6 +7,8 @@ bcalc() {
 }
 b2kb(){bcalc "$1" kb;}&&b2mb(){bcalc "$1" mb;}&&b2gb(){bcalc "$1" gb;}
 
+list_installed() { dpkg --get-selections | awk '{print $1}' | sed 's|/.*||' | tr '\n' ' ' | sed 's/ $/\n/' ; }
+
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
 # Initialization code that may require console input (password prompts, [y/n]
 # confirmations, etc.) must go above this block; everything else may go below.
@@ -119,8 +121,8 @@ source $ZSH/oh-my-zsh.sh
 # Example aliases
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
-alias ls=lsd
-alias speedtest=speedtest-go
+alias ls='lsd'
+alias speedtest='speedtest-go'
 alias biggest='du . -ah | sort -hr | head -n $1'
 alias matrix='cmatrix'
 
@@ -130,8 +132,6 @@ alias matrix='cmatrix'
 clear
 
 export WORK_WEEK=$(date "+%yww%W.%u")
-export LAN_IP=$(ifconfig | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1')
-export WAN_IP=$(curl ifconfig.me)
 export TAILSCALE_IP=$(tailscale status | awk '{print $1}' | awk 'NR == 1 {print}')
 
 clear
@@ -147,5 +147,4 @@ echo ""
 date
 echo ""
 cal
-echo "WAN IP:"
-echo "$WAN_IP"
+echo "TAILSCALE IP:\n$TAILSCALE_IP\n"
