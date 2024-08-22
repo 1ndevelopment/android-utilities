@@ -1,3 +1,12 @@
+bcalc() {
+  i=$1 && s=$2
+  2kb(){echo "scale=2; $1 / (1024)"|bc;}
+  2mb(){echo "scale=2; $1 / (1024*1024)"|bc;}
+  2gb(){echo "scale=2; $1 / (1024*1024*1024)"|bc;}
+  case "$s" in *) r=$(2$s "$i"); echo "$r" ;; esac
+}
+b2kb(){bcalc "$1" kb;}&&b2mb(){bcalc "$1" mb;}&&b2gb(){bcalc "$1" gb;}
+
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
 # Initialization code that may require console input (password prompts, [y/n]
 # confirmations, etc.) must go above this block; everything else may go below.
