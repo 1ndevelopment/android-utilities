@@ -6,7 +6,7 @@ pkg install x11-repo tur-repo && pkg install termux-x11-nightly xwayland -y
 pkg install xfce4 -y
 echo -n "\nInstall Code , Firefox & VLC?\n[y/n]: "
 read i
-[ $i = "y" ] && { pkg install code-oss code-is-code-oss firefox vlc-qt -y ; }
+[ "$i" = y ] && { pkg install code-oss code-is-code-oss firefox vlc-qt -y ; }
 pkg install mesa-zink virglrenderer-mesa-zink vulkan-loader-android virglrenderer-android glmark2 -y
 
 rm -r $PREFIX/share/fonts/0xProto
