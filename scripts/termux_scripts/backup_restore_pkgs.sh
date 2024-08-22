@@ -1,54 +1,75 @@
 #!/system/bin/sh
 
+silence() { "$@" >/dev/null 2>&1; }
+
+backup_dir="/sdcard/termux_pkgs"
+silence mkdir -p "$backup_dir"
+
+sha() { sha256sum "$backup_dir"/"$1" | awk '{print substr($1, length($1) - 6)}' ; }
+list_installed() { dpkg --get-selections | awk '{print $1}' | sed 's|/.*||' | tr '\n' ' ' | sed 's/ $/\n/' ; }
+
 ascii_box() {
-  text_input="$1" ; max_width=$((COLUMNS - 8)) ; box_width=$max_width
-  border=$(printf '%*s' "$((box_width-2))" | tr ' ' '=')
-  print_border="x${border}x" ; content_width=$((box_width - 6))
-  # Print the top of the box
-  echo "$print_border\n|$(printf '%*s' "$((box_width-2))")|" ; line=""
-  for words in $text_input; do
-    if [ $((${#line} + ${#words} + 1)) -le $content_width ]; then
-      [ -n "$line" ] && line+=" " ; line+="$words"
+  echo ""
+  ti="$1" ; mw=$((COLUMNS - 8)) ; bw=$mw
+  b=$(printf '%*s' "$((bw-2))" | tr ' ' '=')
+  pb="x${b}x" ; cw=$((bw - 6))
+  echo "$pb\n|$(printf '%*s' "$((bw-2))")|" ; l=""
+  for w in $ti; do
+    if [ $((${#l} + ${#w} + 1)) -le $cw ]; then
+      [ -n "$l" ] && l+=" " ; l+="$w"
     else
-      # Print the current line
-      padding=$(( (box_width - ${#line} - 2) / 2 ))
-      printf "|%*s%s%*s|\n" $padding "" "$line" $((box_width - padding - ${#line} - 2)) ""
-      line="$words"
+      p=$(( (bw - ${#l} - 2) / 2 ))
+      printf "|%*s%s%*s|\n" $p "" "$l" $((bw - p - ${#l} - 2)) ""
+      l="$w"
     fi
   done
-  # Print the last line if there's any content left
-  [ -n "$line" ] && { padding=$(( (box_width - ${#line} - 2) / 2 )) ; printf "|%*s%s%*s|\n" $padding "" "$line" $((box_width - padding - ${#line} - 2)) "" ; }
-  echo "|$(printf '%*s' "$((box_width-2))")|\n$print_border"
+  [ -n "$l" ] && { p=$(( (bw - ${#l} - 2) / 2 )) ; printf "|%*s%s%*s|\n" $p "" "$l" $((bw - p - ${#l} - 2)) "" ; }
+  echo "|$(printf '%*s' "$((bw-2))")|\n$pb\n"
 }
 
-silence() { "$@" >/dev/null 2>&1; }
-list_installed() { dpkg --get-selections | awk '{print $1}' | sed 's|/.*||' | tr '\n' ' ' | sed 's/ $/\n/' ; }
-packages_list="/data/data/com.termux/files/packages.list"
-
 backup() {
-  silence rm "$packages_list" && touch "$packages_list"
-  list_installed >> $packages_list && echo "$(list_installed)"
-#  termux-setup-storage
-#  sudo tar -zcvf /sdcard/Termux-Backup.tar.gz -C /data/data/com.termux/files ./home ./usr
+  list_installed >> "$backup_dir"/.tmp
+  list_name=$(echo "packages.$(date +"%m-%d-%Y").$(sha .tmp).list")
+  packages_list="$backup_dir/$list_name"
+  list_installed >> "$packages_list"
+  ascii_box "Backup saved: $list_name"
   prompt
 }
 
 restore() {
-  command="pkg install $(cat "$packages_list") -y" && echo $command
-#  termux-setup-storage
-#  sudo tar -zxvf /sdcard/Termux-Backup.tar.gz -C /data/data/com.termux/files --recursive-unlink --preserve-permissions
-#  chmod -R 755 /data/data/com.termux/files/usr /data/data/com.termux/files/home
+  set -- "$backup_dir"/*.list
+  files="$@"
+  [ ! -e "$1" ] && { echo "No backups found." ; prompt ; }
+  ascii_box "Available backups:"
+  i=0
+  for file in "$@"; do
+    i=$((i + 1))
+    echo "$i] $file"
+  done
+  echo "\n\nb] Go back"
+  while :; do
+    echo -n "\n>> " && read choice
+    [ "$choice" = b ] && prompt
+    [ "$choice" = q ] && exit 0
+    [ "$choice" -ge 1 ] 2>/dev/null && [ "$choice" -le "$i" ] && { file=$(eval echo \${$choice}) ; break ; } || echo "\nInvalid choice, try again."
+  done
+  [ -n "$file" ] && { command="pkg install $(cat "$file")" ; echo "\nRestoring from $file\n" ; $command ; prompt ; } || echo "No backup selected." ; restore
+}
+
+cleanup() {
+  rm -r $backup_dir
+  ascii_box "Removed package lists from $backup_dir"
+  silence mkdir -p "$backup_dir"
   prompt
 }
 
 prompt() {
-  echo "" && ascii_box "Backup & Restore Termux Packages"
-  echo -n "\n1] Backup\n2] Restore\nq] Quit\n\n>> "
+  ascii_box "Generate Termux Packages List"
+  echo -n "1] Backup\n2] Restore\n3] Cleanup\nq] Quit\n\n>> "
   read i && echo ""
   case "$i" in
-    1) backup ;;
-    2) restore ;;
-    q) exit 0 ;;
+    1) backup ;; 2) restore ;; 3) cleanup ;; q) exit 0 ;;
   esac
 }
+
 prompt
