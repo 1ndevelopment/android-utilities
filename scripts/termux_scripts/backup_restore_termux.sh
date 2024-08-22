@@ -2,15 +2,13 @@
 
 backup() {
   termux-setup-storage
-  cd ../..
   sudo tar -zcvf /sdcard/Termux-Backup.tar.gz -C /data/data/com.termux/files ./home ./usr
   prompt
 }
 
 restore() {
   termux-setup-storage
-  cd ../..
-  sudo tar -zxvf /sdcard/Termux-Backup.tar.gz --recursive-unlink --preserve-permissions
+  sudo tar -zxvf /sdcard/Termux-Backup.tar.gz -C /data/data/com.termux/files --recursive-unlink --preserve-permissions
   prompt
 }
 
