@@ -2,11 +2,11 @@
 installdeps() {
 yes | pkg upgrade
 echo "allow-external-apps = true" >> ~/.termux/termux.properties && termux-reload-settings
-pkg install x11-repo tur-repo && pkg install termux-x11-nightly xwayland -y
-pkg install xfce4 -y
+pkg install x11-repo tur-repo && pkg install termux-x11-nightly xwayland
+pkg install xfce4
 echo -n "\nInstall Code , Firefox & VLC?\n[y/n]: " && read i
 [ "$i" = y ] && { pkg install code-oss code-is-code-oss firefox vlc-qt -y ; }
-pkg install mesa-zink virglrenderer-mesa-zink vulkan-loader-android virglrenderer-android glmark2 -y
+pkg install mesa-zink virglrenderer-mesa-zink vulkan-loader-android virglrenderer-android glmark2
 
 rm -r $PREFIX/share/fonts/0xProto
 wget https://github.com/ryanoasis/nerd-fonts/releases/download/v3.2.1/0xProto.zip -P $PREFIX/share/fonts && unzip $PREFIX/share/fonts/0xProto.zip -d $PREFIX/share/fonts/0xProto/ && rm $PREFIX/share/fonts/0xProto.zip
@@ -14,9 +14,9 @@ wget https://github.com/ryanoasis/nerd-fonts/releases/download/v3.2.1/0xProto.zi
 
 placexec() {
 
-rm $PREFIX/bin/start-termux-x11
+rm $PREFIX/bin/start-xfce-x11
 
-cat << 'EOF' > $PREFIX/bin/start-termux-x11
+cat << 'EOF' > $PREFIX/bin/start-xfce-x11
 echo ""
 echo "Be sure to logout of xfce in x11 before ending this command"
 am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity > /dev/null 2>&1
@@ -26,7 +26,7 @@ wait
 kill $virgl_server_pid
 EOF
 
-chmod +x $PREFIX/bin/start-termux-x11
+chmod +x $PREFIX/bin/start-xfce-x11
 
 endprompt
 }
@@ -39,7 +39,7 @@ endprompt() {
 echo ""
 echo "To start Termux in Desktop Mode simply run the command:"
 echo ""
-echo "start-termux-x11"
+echo "start-xfce-x11"
 echo ""
 }
 
