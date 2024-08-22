@@ -1,25 +1,17 @@
 #!/system/bin/sh
 
 backup() {
-  if [ -d "~/storage" ]; then
-    termux-setup-storage
-    backup
-  else
-    cd ../..
-    sudo tar cvzf /sdcard/Termux-Backup.tgz ./
-    prompt
-  fi
+  termux-setup-storage
+  cd ../..
+  sudo tar -zcvf /sdcard/Termux-Backup.tar.gz -C /data/data/com.termux/files ./home ./usr
+  prompt
 }
 
 restore() {
-  if [ -d "~/storage" ]; then
-    termux-setup-storage
-    restore
-  else
-    cd ../..
-    sudo tar xvzf /sdcard/Termux-Backup.tgz
-    prompt
-  fi
+  termux-setup-storage
+  cd ../..
+  sudo tar -zxvf /sdcard/Termux-Backup.tar.gz --recursive-unlink --preserve-permissions
+  prompt
 }
 
 prompt() {
