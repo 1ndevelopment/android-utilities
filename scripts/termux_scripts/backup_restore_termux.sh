@@ -9,6 +9,7 @@ backup() {
 restore() {
   termux-setup-storage
   sudo tar -zxvf /sdcard/Termux-Backup.tar.gz -C /data/data/com.termux/files --recursive-unlink --preserve-permissions
+  chmod -R 755 /data/data/com.termux/files/usr /data/data/com.termux/files/home
   prompt
 }
 
