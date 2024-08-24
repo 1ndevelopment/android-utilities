@@ -1,7 +1,20 @@
 #!/system/bin/sh
 
-OS="$1"
-ROOTFS="/data/data/com.termux/files/usr/var/lib/proot-distro/installed-rootfs/$OS"
+ascii_box() {
+  ti="$1" ; mw=$((COLUMNS - 8)) ; bw=$mw ; b=$(printf '%*s' "$((bw-2))" | tr ' ' '=') ; pb="x${b}x" ; cw=$((bw - 6))
+  echo "\n$pb\n|$(printf '%*s' "$((bw-2))")|" ; l=""
+  for w in $ti; do
+    if [ $((${#l} + ${#w} + 1)) -le $cw ]; then
+      [ -n "$l" ] && l+=" " ; l+="$w"
+    else
+      p=$(( (bw - ${#l} - 2) / 2 ))
+      printf "|%*s%s%*s|\n" $p "" "$l" $((bw - p - ${#l} - 2)) ""
+      l="$w"
+    fi
+  done
+  [ -n "$l" ] && { p=$(( (bw - ${#l} - 2) / 2 )) ; printf "|%*s%s%*s|\n" $p "" "$l" $((bw - p - ${#l} - 2)) "" ; }
+  echo "|$(printf '%*s' "$((bw-2))")|\n$pb\n"
+}
 
 cmd_exists() { command -v "$1" >/dev/null 2>&1 ; }
 pdsh() { x="$1" ; pd sh "$OS" --shared-tmp --no-sysvipc -- env DISPLAY=:1 $x ; }
@@ -10,7 +23,10 @@ timezone() { [ -f "$ROOTFS/etc/timezone" ] && return || echo "$(getprop persist.
 update_pkgs() { pdsh "apt update -y" && pdsh "apt upgrade -y" && pdsh "apt autoremove -y" ; }
 
 
-init() { check ; timezone ; } #update_pkgs ; }
+init() {
+  ROOTFS="$PREFIX/var/lib/proot-distro/installed-rootfs/$OS"
+  check ; timezone ; update_pkgs
+}
 
 setup_alpine() { init ;}
 setup_archlinux() { init ;}
@@ -30,7 +46,8 @@ setup_ubuntu() { init ;
   login() {
     if [ -f "$ROOTFS/usr/local/bin/start-xfce-x11" ]; then
       if [ -f "$PREFIX/bin/run-$OS-x11" ]; then
-        run-$OS-x11 $user
+        ascii_box "$OS has successfully been installed!"
+        echo "To launch, simply run: run-ubuntu-x11\n"
       else
 {
 cat << EOF
@@ -98,7 +115,7 @@ EOF
 {
 cat << EOF
 #!/usr/bin/env bash
-[ -n "\$user" ] && { echo "..."; } || echo -n "Username: " && read user
+[ -n "\$user" ] && { echo "..."; } || echo "" && echo -n "Enter Username: " && read user
 ! id \$user >/dev/null 2>&1 && {
   echo -n "Password: " && read pass && echo ''
   groupadd storage && groupadd wheel
@@ -131,32 +148,31 @@ EOF
 
 }
 
-
 setup_ubuntu-oldlts() { init ;}
 setup_void() { init ;}
 
-dep_check() {
+prompt() {
   if cmd_exists proot-distro; then
-    [ "$OS" = alpine ] && setup_"$OS"
-    [ "$OS" = archlinux ] && setup_"$OS"
-    [ "$OS" = artix ] && setup_"$OS"
-    [ "$OS" = debian ] && setup_"$OS"
-    [ "$OS" = debian-oldstable ] && setup_"$OS"
-    [ "$OS" = deepin ] && setup_"$OS"
-    [ "$OS" = fedora ] && setup_"$OS"
-    [ "$OS" = monjaro ] && setup_"$OS"
-    [ "$OS" = openkylin ] && setup_"$OS"
-    [ "$OS" = opensuse ] && setup_"$OS"
-    [ "$OS" = pardus ] && setup_"$OS"
-    [ "$OS" = ubuntu ] && setup_"$OS"
-    [ "$OS" = ubuntu-oldlts ] && setup_"$OS"
-    [ "$OS" = void ] && setup_"$OS"
+    ascii_box "Linux Proot Termux Installer"
+    ascii_box "Select distro:\n\n1] Alpine\n2] Arch\n3] Artix\n4] Debian\n5] Debian LTS\n6] Deepin\n7] Fedora\n8] Monjaro\n9] Openkylin\n10] Opensuse\n11] Pardus\n12] Ubuntu\n13] Ubuntu LTS\n14] Void\n\nq] Quit\n"
+    printf ">> "
+    read i
+    case "$i" in
+      1) OS=alpine ;; 2) OS=archlinux ;; 3) OS=artix ;;
+      4) OS=debian ;; 5) OS=debian-oldstable ;; 6) OS=deepin ;;
+      7) OS=fedora ;; 8) OS=monjaro ;; 9) OS=openkylin ;;
+      10) OS=opensuse ;; 11) OS=pardus ;; 12) OS=ubuntu ;;
+      13) OS=ubuntu-oldlts ;; 14) OS=void ;; q) exit 0 ;;
+      *) echo "\nInvalid selection\n" && prompt ;;
+    esac
+    setup_"$OS"
   else
-    pkg install x11-repo -y && pkg update && termux-setup-storage
+    if 
+    ascii_box "Installing needed packages..."
+    pkg install x11-repo termux-x11-repo -y && pkg update && termux-setup-storage
     pkg install dbus proot proot-distro pulseaudio virglrenderer-android pavucontrol-qt mesa-zink virglrenderer-mesa-zink vulkan-loader-android virglrenderer-android glmark2 mesa-zink virglrenderer-mesa-zink -y
     printf "OS=\$1\npdsh() { x=\"\$1\" ; pd sh \"\$OS\" --shared-tmp --no-sysvipc -- env DISPLAY=:1 \$x ; }\n[ -n \"\$2\" ] && { pdsh \$2 ; exit 0 ;} || pdsh /bin/bash ; exit 0\n" >> $PREFIX/bin/pdsh && chmod +x $PREFIX/bin/pdsh
+    prompt
   fi
 }
-
-dep_check
-
+prompt
