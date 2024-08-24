@@ -8,9 +8,8 @@
 
 ## Installation
 
-Just select your distro,  
-type in your username and password,  
-& boot into the selected OS of your choice;  
-then follow the prompts to launch from Termux whenever!
+1] Select your distro  
+2] Type in your username and password  
+3] Once finished, simply run: run-$os-x11
 
 
