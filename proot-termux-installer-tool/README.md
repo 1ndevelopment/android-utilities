@@ -1,14 +1,12 @@
-## Proot Linux Installer for Termux
+# Proot Linux Installer for Termux
 
-# Features:
+## Features:
 
 * Easy to use
 
 * Automatic Install
 
-* 
-
-# Installation
+## Installation
 
 Just select your distro,
 type in your username and password,
