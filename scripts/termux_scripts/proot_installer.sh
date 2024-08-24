@@ -23,80 +23,105 @@ setup_monjaro() { init ;}
 setup_openkylin() { init ;}
 setup_opensuse() { init ;}
 setup_pardus() { init ;}
+
+
 setup_ubuntu() { init ;
 
-  echo -n "\nInput username: " && read user && echo ""
-
   login() {
-    if [ -f "$ROOTFS/home/$user/.local/start-xfce-x11.sh" ]; then
+    if [ -f "$ROOTFS/usr/local/bin/start-xfce-x11" ]; then
       if [ -f "$PREFIX/bin/run-$OS-x11" ]; then
-        run-$OS-x11
+        run-$OS-x11 $user
       else
 {
 cat << EOF
+#!/system/bin/sh
+[ -z "\$1" ] && { user="? username" ; } || user="\$1"
 pdsh() { x="\$1" ; pd sh "$OS" --shared-tmp --no-sysvipc -- env DISPLAY=:1 \$x ; }
+idc() { pdsh "id \$user" >/dev/null 2>&1 ; }
+! idc && { echo "\n\$user does not exist, try again." && exit 0 ;} || echo "\nLogging in as \$user"
 kill -9 \$(pgrep -f "termux.x11") 2>/dev/null
 pulseaudio --start --load="module-native-protocol-tcp auth-ip-acl=127.0.0.1 auth-anonymous=1" --exit-idle-time=-1
 pacmd load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1 auth-anonymous=1
 export XDG_RUNTIME_DIR=${TMPDIR}
 termux-x11 :1 -ac >/dev/null & sleep 3
-#am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity > /dev/null 2>&1 && sleep 1
-
 MESA_NO_ERROR=1
 MESA_GL_VERSION_OVERRIDE=4.3COMPAT
 MESA_GLES_VERSION_OVERRIDE=3.2
 GALLIUM_DRIVER=zink
 ZINK_DESCRIPTORS=lazy
 virgl_test_server --use-egl-surfaceless --use-gles &
-
 pdsh "kill -9 \$(pgrep -f termux.x11)" > /dev/null 2>&1
-pdsh "PULSE_SERVER=127.0.0.1" > /dev/null 2>&1
-pdsh "XDG_RUNTIME_DIR=${TMPDIR}" > /dev/null 2>&1
-
-if grep TERMUX_HOME /etc/environment; then
-  
-else
-  echo "TERMUX_HOME=$HOME" >> "$ROOTFS"/etc/environment
-fi
-
-am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity > /dev/null 2>&1 && sleep 1
-pdsh "./../home/$user/.local/start-xfce-x11.sh"
-pkill virgl_test_server && pkill virglrender
+run() {
+  if grep -q TERMUX_HOME $ROOTFS/etc/environment; then
+    am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity > /dev/null 2>&1 && sleep 1
+    pdsh "/usr/local/bin/start-xfce-x11" > /dev/null 2>&1
+    pkill virgl_test_server && pkill virglrender
+  else
+    echo "XDG_RUNTIME_DIR=${TMPDIR}" >> $ROOTFS/etc/environment
+    if grep -q GALLIUM_DRIVER $ROOTFS/home/\$user/.bashrc; then
+      echo "TERMUX_HOME=$HOME" >> $ROOTFS/etc/environment
+    else
+      echo "export GALLIUM_DRIVER=zink" >> $ROOTFS/home/\$user/.bashrc
+    fi
+    run
+  fi
+}
+run
 exit 0
 EOF
 } >> $PREFIX/bin/run-$OS-x11
-        chmod +x $PREFIX/bin/run-$OS-x11
-        login
+        chmod +x $PREFIX/bin/run-$OS-x11 && login
       fi
     else
-      echo "su - $user -c \"termux-x11 :1 -xstartup 'dbus-launch --exit-with-session xfce4-session'\"" >> "$ROOTFS"/home/"$user"/.local/start-xfce-x11.sh
-      chmod +x "$ROOTFS"/home/"$user"/.local/start-xfce-x11.sh
-      login
+      echo "su - $user -c \"termux-x11 :1 -xstartup 'dbus-launch --exit-with-session xfce4-session'\"" >> "$ROOTFS"/usr/local/bin/start-xfce-x11
+      chmod +x "$ROOTFS"/usr/local/bin/start-xfce-x11 && login
     fi
   }
+
   install_pkgs() {
-    echo "apt install sudo -y" >> "$ROOTFS"/root/update.sh
-    echo "sudo apt install xfce4 xfce4-terminal dbus-x11 wget apt-utils locales-all dialog tzdata libglvnd-dev -y" >> "$ROOTFS"/root/update.sh
-    echo "update-alternatives --install /usr/bin/x-terminal-emulator x-terminal-emulator /usr/bin/xfce4-terminal 50" >> "$ROOTFS"/root/update.sh
-    echo "update-alternatives --set x-terminal-emulator /usr/bin/xfce4-terminal" >> "$ROOTFS"/root/update.sh
+    rm -r "$ROOTFS"/root/update.sh
+{
+cat << EOF
+#!/usr/bin/env bash
+apt install sudo -y
+sudo apt install xfce4 xfce4-terminal dbus-x11 wget apt-utils locales-all dialog tzdata libglvnd-dev -y
+update-alternatives --install /usr/bin/x-terminal-emulator x-terminal-emulator /usr/bin/xfce4-terminal 50
+update-alternatives --set x-terminal-emulator /usr/bin/xfce4-terminal
+exit 0
+EOF
+} >> "$ROOTFS"/root/update.sh
     chmod +x "$ROOTFS"/root/update.sh && pdsh "./update.sh"
   }
+
   adduser() {
     rm -r "$ROOTFS"/root/adduser.sh >/dev/null 2>&1
-    echo -n "\nInput password: " && read pass
-    echo "groupadd storage && groupadd wheel" >> "$ROOTFS"/root/adduser.sh
-    echo "useradd -m -g users -G wheel,audio,video,storage -s /bin/bash $user" >> "$ROOTFS"/root/adduser.sh
-    echo "echo "$user:$pass" | chpasswd" >> "$ROOTFS"/root/adduser.sh
+{
+cat << EOF
+#!/usr/bin/env bash
+[ -n "\$user" ] && { echo "..."; } || echo -n "Username: " && read user
+! id \$user >/dev/null 2>&1 && {
+  echo -n "Password: " && read pass && echo ''
+  groupadd storage && groupadd wheel
+  useradd -m -g users -G wheel,audio,video,storage -s /bin/bash \$user
+  echo "\$user:\$pass" | chpasswd
+  chmod u+rw /etc/sudoers
+  echo "\$user ALL=(ALL) ALL" >> /etc/sudoers
+  chmod u-w /etc/sudoers
+  echo "\$user" >> /root/.tmp
+exit 0
+} || echo "\$user" >> /root/.tmp
+EOF
+} >> "$ROOTFS"/root/adduser.sh
     chmod +x "$ROOTFS"/root/adduser.sh
     pdsh "./adduser.sh"
-    chmod u+rw "$ROOTFS"/etc/sudoers
-    echo "$user ALL=(ALL) ALL" >> "$ROOTFS"/etc/sudoers
-    chmod u-w "$ROOTFS"/etc/sudoers
   }
 
   prep() {
     if [ -f "$ROOTFS/root/update.sh" ]; then
-      [ "$user" = android ] && login || adduser ; setup_"$OS"
+      [ -e "$ROOTFS/root/.tmp" ] && { user=$(cat "$ROOTFS"/root/.tmp) ; login ; }
+      user="?"
+      idc() { pdsh "id $user" >/dev/null 2>&1 ; }
+      ! idc && { adduser ; setup_"$OS" ; }
     else
       install_pkgs
       prep
@@ -105,6 +130,7 @@ EOF
   prep
 
 }
+
 
 setup_ubuntu-oldlts() { init ;}
 setup_void() { init ;}
