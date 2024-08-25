@@ -20,7 +20,9 @@
 # Description: Bulk install both individual & split APK files at once
 #
 
-# Help menu
+
+. ./.env
+
 show_help() {
     echo ""
     echo "Usage: $0 [options] <directory>"
@@ -68,16 +70,12 @@ install_apk() {
     local apk_path="$1"
     local package_name=$(sudo aapt dump badging "$apk_path" | grep package | awk -F"'" '{print $2}')
 
-    echo ""
-    echo "================================================"
-    echo "Installing $package_name..."
-    echo ""
+    ascii_box  "Installing $package_name..."
 
     if sudo pm install "$apk_path"; then
-        echo "Installed $package_name!"
-        echo "================================================"
+        ascii_box "Installed $package_name!"
     else
-        echo "Failed to install $package_name ..."
+        ascii_box "Failed to install $package_name ..."
     fi
 }
 
@@ -86,10 +84,7 @@ install_split_apk() {
     local apk_dir="$1"
     local package_name=$(sudo aapt dump badging "$apk_dir"/*.apk | grep package | awk -F"'" '{print $2}')
 
-    echo ""
-    echo "================================================"
-    echo "Installing split APK: $package_name..."
-    echo ""
+    ascii_box "Installing split APK: $package_name..."
 
     local APK_TOTAL_SIZE=$(ls -l $apk_dir/././ | awk '{sum+=$5} END {print sum}')
 
@@ -105,8 +100,7 @@ install_split_apk() {
 
     if sudo pm install-commit "$SESSION_ID"; then
         rm $apk_dir/././session.id
-        echo "Installed $package_name!"
-        echo "================================================"
+        ascii_box "Installed $package_name!"
     else
         echo "Failed to install $package_name ..."
     fi

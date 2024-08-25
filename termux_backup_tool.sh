@@ -1,6 +1,6 @@
 #!/system/bin/sh
 
-arch() { ARCH=$(uname -m) ; [ "$ARCH" = aarch64 ] && { ARCH="arm64" && echo $ARCH ;} ; }
+. ./.env
 
 BIN="/system/bin"
 PWD="/data/data/com.termux/files"
@@ -8,26 +8,6 @@ HOME="$PWD/home"
 PREFIX="$PWD/usr"
 TBIN="$PREFIX/bin"
 TMP="$PREFIX/tmp"
-
-silence() { "$@" >/dev/null 2>&1; }
-sha() { sha256sum "$TMP"/"$1" | awk '{print substr($1, length($1) - 6)}' ; }
-list_installed() { dpkg --get-selections | awk '{print $1}' | sed 's|/.*||' | tr '\n' ' ' | sed 's/ $/\n/' ; }
-
-ascii_box() {
-  ti="$1" ; mw=$((COLUMNS - 8)) ; bw=$mw ; b=$(printf '%*s' "$((bw-2))" | tr ' ' '=') ; pb="x${b}x" ; cw=$((bw - 6))
-  echo "\n$pb\n|$(printf '%*s' "$((bw-2))")|" ; l=""
-  for w in $ti; do
-    if [ $((${#l} + ${#w} + 1)) -le $cw ]; then
-      [ -n "$l" ] && l+=" " ; l+="$w"
-    else
-      p=$(( (bw - ${#l} - 2) / 2 ))
-      printf "|%*s%s%*s|\n" $p "" "$l" $((bw - p - ${#l} - 2)) ""
-      l="$w"
-    fi
-  done
-  [ -n "$l" ] && { p=$(( (bw - ${#l} - 2) / 2 )) ; printf "|%*s%s%*s|\n" $p "" "$l" $((bw - p - ${#l} - 2)) "" ; }
-  echo "|$(printf '%*s' "$((bw-2))")|\n$pb\n"
-}
 
 backup() {
   list_name="packages.list" ; packages_list="$TMP/$list_name" ; list_installed >> "$packages_list"
@@ -37,7 +17,7 @@ backup() {
   su -c "tar -cf - -C $PWD ./home | $TBIN/pv -s $(du -sb $HOME | awk '{print $1}') | gzip > /sdcard/home.tar.xz"
 
   echo "\nBacking up $PREFIX -> /sdcard/usr.tar.xz\n"
-  termux-backup - | pv -s $(du -sb "$PREFIX" | awk '{print $1}') > /sdcard/usr.tar.xz
+  termux-backup - | pv -s $(sudo du -sb "$PREFIX" | awk '{print $1}') > /sdcard/usr.tar.xz
 
   echo "\nCombining usr.tar.xz & home.tar.xz into termux_backup.$timehash.tar\n"
   tar -cf - /sdcard/*.tar.xz | pv -s $(du -sb /sdcard/*.tar.xz | awk '{print $1}' | awk '{sum += $1} END {print sum}' | /system/bin/bc) > /sdcard/termux_backup.$timehash.tar
@@ -88,13 +68,12 @@ prompt() {
 }
 
 dep_check() {
-  command_exists() { command -v "$1" >/dev/null 2>&1 ; }
-  if command_exists pv; then
+  if cmd_exists pv; then
       return
   else
       echo "Dependencies are not installed. Installing now...\n"
       silence pkg update -y && silence pkg install -y pv
-      command_exists pv && echo "Dependencies have been successfully installed." || echo "Failed to install pv. Please try manually."
+      cmd_exists pv && echo "Dependencies have been successfully installed." || echo "Failed to install pv. Please try manually."
   fi
 }
 

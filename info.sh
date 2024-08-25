@@ -5,7 +5,9 @@ sysname=$(getprop ro.product.system.name)
 buildfp=$(getprop ro.system.build.fingerprint)
 securitypatch=$(getprop ro.build.version.security_patch)
 
-echo "$sysname // $build // $securitypatch"
-echo "$buildfp"
-echo ""
+. ./.env
+
+ascii_box "$sysname // $build // $securitypatch"
+#echo "$buildfp"
+#echo ""
 
