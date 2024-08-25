@@ -1,5 +1,25 @@
 #!/system/bin/sh
 
+#
+# Script Name: Proot Linux Termux:x11 Installer
+# Author: Jacy Kincade (1ndevelopment@protonmail.com)
+#
+# License: GPL
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see https://www.gnu.org/licenses/.
+#
+# Description: Install Linux distro ontop of Termux:x11
+#
+
 . ./.env
 
 ROOTFS="$PREFIX/var/lib/proot-distro/installed-rootfs"
@@ -28,7 +48,7 @@ setup_ubuntu() { init ;
     if [ -f "$PROOT/usr/local/bin/start-xfce-x11" ]; then
       if [ -f "$PREFIX/bin/run-$OS-x11" ]; then
         ascii_box "$OS has successfully been installed!"
-        echo "To launch, simply run: run-ubuntu-x11\n"
+        echo "To launch, simply run: run-ubuntu-x11 $user\n"
       else
 {
 cat << EOF
@@ -85,6 +105,7 @@ apt install sudo -y
 sudo apt install xfce4 xfce4-terminal dbus-x11 wget apt-utils locales-all dialog tzdata libglvnd-dev -y
 update-alternatives --install /usr/bin/x-terminal-emulator x-terminal-emulator /usr/bin/xfce4-terminal 50
 update-alternatives --set x-terminal-emulator /usr/bin/xfce4-terminal
+install_ohmyzsh
 exit 0
 EOF
 } >> "$PROOT"/root/update.sh
@@ -118,7 +139,6 @@ EOF
     if [ -f "$PROOT/root/update.sh" ]; then
       [ -e "$PROOT/root/.tmp" ] && { user=$(cat "$PROOT"/root/.tmp) ; login ; }
       user="?"
-      idc() { pdsh "id $user" >/dev/null 2>&1 ; }
       ! idc && { adduser ; setup_"$OS" ; }
     else
       install_pkgs
@@ -134,7 +154,7 @@ setup_void() { init ;}
 
 prompt() {
   if cmd_exists proot-distro; then
-    ascii_box "Linux Proot Termux Installer"
+    ascii_box "Proot Linux Termux:x11 Installer"
     echo -n "Select distro:\n\n1] Alpine       $(IS alpine)\n2] ArchLinux    $(IS archlinux)\n3] Artix        $(IS artix)\n4] Debian       $(IS debian)\n5] Debian LTS   $(IS debian-oldstable)\n6] Deepin       $(IS deepin)\n7] Fedora       $(IS fedora)\n8] Monjaro      $(IS monjaro)\n9] Openkylin    $(IS openkylin)\n10] Opensuse    $(IS opensuse)\n11] Pardus      $(IS pardus)\n12] Ubuntu      $(IS ubuntu)\n13] Ubuntu LTS  $(IS ubuntu-oldlts)\n14] Void        $(IS void)\n\nq] Quit\n\n>> "
     read i
     case "$i" in

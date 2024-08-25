@@ -11,17 +11,7 @@ cleanup() {
   main_menu
 }
 
-list_partitions() {
-  print() {
-    local i="$1" && local d=$(pwd) && echo "Navigating to:\n$i" && cd "$i" || return 1
-    echo "" && ascii_box "Raw Partition <- Partition Name" && echo ""
-    find . -maxdepth 1 -type l -printf "%l <- %p\n" | sort | sed "s| \./| |"
-    echo "" && ascii_box "Partition Name ->  Raw Partition" && echo ""
-    find . -maxdepth 1 -type l -printf "%p -> %l\n" | sort -k2 | sed "s|^\./| |"
-    cd "$d" || return 1
-  }
-  print "/dev/block/by-name" && echo "" && main_menu
-}
+list_partitions() { sudo find /dev/block/bootdevice/by-name -type l -printf "%p -> " -exec readlink -f {} \; | awk '{print $NF, $0}' | sort | cut -d' ' -f2- ; }
 
 extract_img() {
 ## Extract super or sub-partitions of super
