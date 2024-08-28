@@ -11,13 +11,13 @@ build-apk-tool
 └── build_apk.sh
 ```
 
-# Bulk APK Installer
+## Bulk APK Installer
 
-# Enable EXFat Tool
+## Enable EXFat Tool
 
-# Custom Recovery Flashable .ZIP Builder
+## Custom Recovery Flashable .ZIP Builder
 
-# Termux Proot Installer
+## Termux Proot Installer
 ## Features:
 
 * Easy to use
@@ -30,4 +30,4 @@ build-apk-tool
 2] Type in your username and password
 3] Once finished, simply run: run-$os-x11
 
-# Super Edit Tool
+## Super Edit Tool
