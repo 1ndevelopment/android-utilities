@@ -10,16 +10,18 @@ list_name="packages.list"
 packages_list="$TMP/$list_name"
 
 . ./.env
+detect_env
 
-list_installed >> "$packages_list"
+list_installed > "$packages_list"
+timehash=$(echo "$(termux_version)-$(arch)_$(date +"%m-%d-%Y")_$(sha $list_name)")
 
 backup() {
   echo "Backing up $HOME -> /sdcard/home.tar.xz\n"
-  su -c "tar -cf - -C $PWD ./home | $TBIN/pv -s $(du -sb $HOME | awk '{print $1}') | $TBIN/pigz -9 > /sdcard/home.tar.xz"
+  su -c "tar -cf - -C /data/data/com.termux/files ./home | $pv -s $(sudo du -sb /data/data/com.termux/files/home | awk '{print $1}') | $pigz -9 > /sdcard/home.tar.xz"
   echo "\nBacking up $PREFIX -> /sdcard/usr.tar.xz\n"
-  termux-backup - | pv -s $(du -sb $PREFIX | awk '{print $1}') > /storage/emulated/0/usr.tar.xz
+  termux-backup - | $pv -s $($du -sb $PREFIX | awk '{print $1}') > /storage/emulated/0/usr.tar.xz
   echo "\nCombining /sdcard/usr.tar.xz & /sdcard/home.tar.xz\ninto /sdcard/termux_backup_$timehash.tar.gz\n"
-  pv /sdcard/*.tar.xz | pigz -9 > /sdcard/termux_backup_$timehash.tar.gz
+  $pv /sdcard/*.tar.xz | $pigz -9 > /sdcard/termux_backup_$timehash.tar.gz
   rm -r /sdcard/*.tar.xz
   ascii_box "Backup saved: /sdcard/termux_backup_$timehash.tar"
   prompt
@@ -44,10 +46,10 @@ restore() {
   done
   if [ -n "$file" ]; then
     echo "\nRestoring from $file\n"
-    pv -s $(du -sb $file | awk '{print $1}') $file | tar -x -f - -C $PWD
+    $pv -s $($du -sb $file | awk '{print $1}') $file | tar -x -f - -C $PWD
     mv $PWD/sdcard/* $PWD && rm -r $PWD/sdcard
-    $BIN/xzcat $PWD/usr.tar.xz | pv | termux-restore -
-    $BIN/xzcat $PWD/home.tar.xz | pv | tar -x -C $PWD --recursive-unlink --preserve-permissions
+    $xzcat $PWD/usr.tar.xz | $pv | termux-restore -
+    $xzcat $PWD/home.tar.xz | $pv | tar -x -C $PWD --recursive-unlink --preserve-permissions
     rm -r $PWD/*.tar.xz
     prompt
   else
@@ -65,12 +67,12 @@ prompt() {
 }
 
 dep_check() {
-  if cmd_exists pv; then
+  if cmd_exists $pv; then
       return
   else
       echo "Dependencies are not installed. Installing now...\n"
       silence pkg update -y && silence pkg install -y pv
-      cmd_exists pv && echo "Dependencies have been successfully installed." || echo "Failed to install pv. Please try manually."
+      cmd_exists $pv && echo "Dependencies have been successfully installed." || echo "Failed to install pv. Please try manually."
   fi
 }
 
