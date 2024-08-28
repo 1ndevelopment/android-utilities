@@ -7,7 +7,7 @@ Various termux scripts, binaries &amp; tools.
 ```
 android-utilities
 └── build-apk-tool
-    └── build_apk.sh
+    └── ./build_apk.sh
 ```
 
 ## Bulk APK Installer
@@ -20,10 +20,10 @@ android-utilities
 ```
 android-utilities
 └── enable-exfat-tool
-    ├── 0_uninstall.sh
-    ├── 1_install.sh
-    ├── 2_install.sh
-    ├── exfat_USB.sh
+    ├── ./0_uninstall.sh
+    ├── ./1_install.sh
+    ├── ./2_install.sh
+    ├── ./exfat_USB.sh
     ├── mount.exfat
     ├── ntfs-3g
     ├── ntfsfix
@@ -42,7 +42,7 @@ android-utilities
     │           └── android
     │               └── update-binary
     ├── bin -> ../bin
-    └── package_ota.sh
+    └── ./package_ota.sh
 ```
 
 ## Termux Proot Installer
@@ -51,22 +51,10 @@ android-utilities
 └── ./proot_installer.sh
 ```
 
-## Features:
-
-* Easy to use
-
-* Automatic Install
-
-## Installation
-
-1] Select your distro
-2] Type in your username and password
-3] Once finished, simply run: run-$os-x11
-
 ## Super Edit Tool
 ```
 android-utilities
 └── super-edit-tool
     ├── bin -> ../bin
-    └── super_edit.sh
+    └── ./super_edit.sh
 ```
