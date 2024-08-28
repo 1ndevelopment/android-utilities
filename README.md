@@ -63,7 +63,6 @@ android-utilities
 ```
 android-utilities
 └── various-scripts
-    ├── ./0001_fix_sepolicy.sh
     ├── ./adb_zsh_termux_shell.sh
     ├── ./build_bliss_rom.sh
     ├── ./build_kernel.sh
@@ -74,5 +73,6 @@ android-utilities
     ├── ./ohmyzsh_termux_install.sh
     ├── ./recovery_mode_usb-mtp-fix.sh
     ├── ./remount_rw.sh
+    ├── ./startup_fix_sepolicy.sh
     └── ./xfce_termux-x11_install.sh
 ```
