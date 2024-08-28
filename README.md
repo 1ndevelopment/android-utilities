@@ -114,8 +114,15 @@ Various termux scripts, magisk modules &amp; tools.
 └── termux_backup_tool.sh
 ```
 
-# proot-termux-installer-tool.sh
+# Build APK Tool
 
+# Bulk APK Installer
+
+# Enable EXFat Tool
+
+# Custom Recovery Flashable .ZIP Builder
+
+# Termux Proot Installer
 ## Features:
 
 * Easy to use
@@ -127,3 +134,5 @@ Various termux scripts, magisk modules &amp; tools.
 1] Select your distro
 2] Type in your username and password
 3] Once finished, simply run: run-$os-x11
+
+# Super Edit Tool
