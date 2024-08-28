@@ -159,10 +159,10 @@ ui_print " Done!"
 ui_print " "
 ui_print " Finalizing & Cleaning up ... "
 ui_print " "
-disable_verity_verify "bin/aarch64/avbctl"
+disable_verity_verify "bin/arm64/android/avbctl"
 ui_print " "
-set_bootctl "bin/aarch64/avbctl"
-bootctl"
+set_bootctl "bin/arm64/android/bootctl"
+bootctl
 ui_print " "
 rm -rf $tmp
 ui_print " Flashing Complete!"
