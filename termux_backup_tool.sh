@@ -1,30 +1,27 @@
 #!/system/bin/sh
 
-. ./.env
-
 BIN="/system/bin"
 PWD="/data/data/com.termux/files"
 HOME="$PWD/home"
 PREFIX="$PWD/usr"
 TBIN="$PREFIX/bin"
 TMP="$PREFIX/tmp"
+list_name="packages.list"
+packages_list="$TMP/$list_name"
+
+. ./.env
+
+list_installed >> "$packages_list"
 
 backup() {
-  list_name="packages.list" ; packages_list="$TMP/$list_name" ; list_installed >> "$packages_list"
-  timehash=$(echo "$(arch)_$(date +"%m-%d-%Y")_$(sha $list_name)")
-
   echo "Backing up $HOME -> /sdcard/home.tar.xz\n"
-  su -c "tar -cf - -C $PWD ./home | $TBIN/pv -s $(du -sb $HOME | awk '{print $1}') | gzip > /sdcard/home.tar.xz"
-
+  su -c "tar -cf - -C $PWD ./home | $TBIN/pv -s $(du -sb $HOME | awk '{print $1}') | $TBIN/pigz -9 > /sdcard/home.tar.xz"
   echo "\nBacking up $PREFIX -> /sdcard/usr.tar.xz\n"
   termux-backup - | pv -s $(du -sb $PREFIX | awk '{print $1}') > /storage/emulated/0/usr.tar.xz
-
-  echo "\nCombining usr.tar.xz & home.tar.xz into termux_backup.$timehash.tar\n"
-  tar -cf - /sdcard/*.tar.xz | pv -s $(du -sb /sdcard/*.tar.xz | awk '{print $1}' | awk '{sum += $1} END {print sum}' | /system/bin/bc) > /sdcard/termux_backup.$timehash.tar
-
+  echo "\nCombining /sdcard/usr.tar.xz & /sdcard/home.tar.xz\ninto /sdcard/termux_backup_$timehash.tar.gz\n"
+  pv /sdcard/*.tar.xz | pigz -9 > /sdcard/termux_backup_$timehash.tar.gz
   rm -r /sdcard/*.tar.xz
-
-  ascii_box "Backup saved: /sdcard/termux_backup.$timehash.tar"
+  ascii_box "Backup saved: /sdcard/termux_backup_$timehash.tar"
   prompt
 }
 
