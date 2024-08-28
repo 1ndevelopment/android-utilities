@@ -30,7 +30,7 @@ android-utilities
     └── probe
 ```
 
-## Custom Recovery Flashable .ZIP Builder
+## Recovery Flashable .zip Tool
 ```
 android-utilities
 └── ota-flashable-zip-template-tool
@@ -57,4 +57,22 @@ android-utilities
 └── super-edit-tool
     ├── bin -> ../bin
     └── ./super_edit.sh
+```
+
+## Various Scripts
+```
+android-utilities
+└── various-scripts
+    ├── ./0001_fix_sepolicy.sh
+    ├── ./adb_zsh_termux_shell.sh
+    ├── ./build_bliss_rom.sh
+    ├── ./build_kernel.sh
+    ├── ./change_build_usr2eng.sh
+    ├── ./fw_dump.sh
+    ├── ./generate_sha256_lists.sh
+    ├── ./install_scrcpy.sh
+    ├── ./ohmyzsh_termux_install.sh
+    ├── ./recovery_mode_usb-mtp-fix.sh
+    ├── ./remount_rw.sh
+    └── ./xfce_termux-x11_install.sh
 ```
