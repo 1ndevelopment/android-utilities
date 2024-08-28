@@ -3,6 +3,7 @@
 # android-utilities
 Various termux scripts, magisk modules &amp; tools.
 
+```
 .
 ├── build-apk-tool
 │   └── build_apk.sh
@@ -32,6 +33,7 @@ Various termux scripts, magisk modules &amp; tools.
 │   │       ├── android
 │   └── super_edit.sh
 └── termux_backup_tool.sh
+```
 
 # proot-termux-installer-tool.sh
 
