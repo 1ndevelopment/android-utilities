@@ -17,7 +17,7 @@ backup() {
   su -c "tar -cf - -C $PWD ./home | $TBIN/pv -s $(du -sb $HOME | awk '{print $1}') | gzip > /sdcard/home.tar.xz"
 
   echo "\nBacking up $PREFIX -> /sdcard/usr.tar.xz\n"
-  termux-backup - | pv -s $(sudo du -sb "$PREFIX" | awk '{print $1}') > /sdcard/usr.tar.xz
+  termux-backup - | pv -s $(du -sb $PREFIX | awk '{print $1}') > /storage/emulated/0/usr.tar.xz
 
   echo "\nCombining usr.tar.xz & home.tar.xz into termux_backup.$timehash.tar\n"
   tar -cf - /sdcard/*.tar.xz | pv -s $(du -sb /sdcard/*.tar.xz | awk '{print $1}' | awk '{sum += $1} END {print sum}' | /system/bin/bc) > /sdcard/termux_backup.$timehash.tar
@@ -82,5 +82,6 @@ init() {
   prompt
 }
 
-silence rm -r "$TMP" && silence mkdir -p "$TMP"
+#silence rm -r "$TMP"
+#silence mkdir -p "$TMP"
 init
