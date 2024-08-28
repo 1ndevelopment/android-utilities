@@ -5,7 +5,7 @@ Various termux scripts, binaries &amp; tools.
 
 
 
-# Build APK Tool
+## Build APK Tool
 ```
 build-apk-tool
 └── build_apk.sh
