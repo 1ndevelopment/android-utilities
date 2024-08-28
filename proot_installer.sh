@@ -19,6 +19,9 @@
 #
 # Description: Install Linux distro ontop of Termux:x11
 #
+# Fully cleanup post install files & directories
+# rm "$PREFIX/bin/run-ubuntu-x11" "$PROOT/tmp/chsh_fish" "$PROOT/tmp/.tmp" "$PREFIX/tmp/install_ohmyzsh.sh" "$PREFIX/tmp/install_wine.sh" "$PROOT/usr/local/bin/start-xfce-x11" "$PROOT/tmp/update.sh" "$PROOT/root/adduser.sh" "$PREFIX/tmp/adduser.sh" "$PROOT/tmp/chsh_fish.sh" "$PROOT/tmp/chsh-fish.sh" "$PROOT/root/.active_user" >/dev/null 2>&1 && nano "$PROOT/etc/environment" && nano "$PROOT/home/$user/.config/fish/config.fish"
+#
 # shellcheck source=/dev/null
 . ./.env
 
@@ -26,7 +29,7 @@ ROOTFS="$PREFIX/var/lib/proot-distro/installed-rootfs"
 
 init() {
   PROOT="$ROOTFS/$OS"
-  check ; timezone #; update_pkgs
+  check ; timezone
 }
 
 setup_alpine() { init ;}
@@ -40,15 +43,16 @@ setup_monjaro() { init ;}
 setup_openkylin() { init ;}
 setup_opensuse() { init ;}
 setup_pardus() { init ;}
-
-
 setup_ubuntu() { init ;
-
   login() {
     user=$(cat "$PROOT/root/.active_user")
     if [ -f "$PROOT/usr/local/bin/start-xfce-x11" ]; then
       if [ -f "$PREFIX/bin/run-$OS-x11" ]; then
-        install_wine # just create the scripts in /tmp for now
+
+        ## post install selection, add any additional commands below:
+        install_gles
+        ## END
+
         ascii_box "$OS has successfully been installed!"
         printf "To launch a root shell, run: pdsh %s\nTo launch into GUI, simply run: run-%s-x11 %s\n" "$OS" "$OS" "$user"
       else
@@ -74,8 +78,12 @@ ZINK_DESCRIPTORS=lazy
 virgl_test_server --use-egl-surfaceless --use-gles &
 pdsh "kill -9 \$(pgrep -f termux.x11)" > /dev/null 2>&1
 am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity > /dev/null 2>&1 && sleep 1
-pdsh "/usr/local/bin/start-xfce-x11" > /dev/null 2>&1
-pkill virgl_test_server && pkill virglrender
+run() {
+  pdsh "/usr/local/bin/start-xfce-x11" > /dev/null 2>&1
+  pkill virgl_test_server /dev/null 2>&1
+  pkill virglrender /dev/null 2>&1
+}
+run &
 exit 0
 EOF
 } >> "$PREFIX/bin/run-$OS-x11"
@@ -87,6 +95,8 @@ EOF
               run
             else
               sed -i "3i export GALLIUM_DRIVER=zink" "$PROOT/home/$user/.config/fish/config.fish"
+              sed -i "4i alias ls='lsd -1A'" "$PROOT/home/$user/.config/fish/config.fish"
+              sed -i "5i echo '' && fastfetch --logo none && echo '' && cal" "$PROOT/home/$user/.config/fish/config.fish"
               chsh_fish() {
                 echo -e "su - \$user -c \"[ '\$(getent passwd \$USER | cut -d: -f7)' != '/usr/bin/fish' ] && { chsh -s '/usr/bin/fish' ;} || echo -e 'Using fish'\"\n" > "$PROOT/root/fishy.sh" && chmod +x "$PROOT/root/fishy.sh"
                 chmod +x "$PROOT/root/fishy.sh" && pdsh "/root/fishy.sh"
@@ -105,27 +115,35 @@ EOF
       chmod +x "$PROOT/usr/local/bin/start-xfce-x11" && login
     fi
   }
-
   install_pkgs() {
     rm -r "$PROOT/tmp/update.sh" >/dev/null 2>&1
+{
+cat << EOF
+# To prevent repository packages from triggering the installation of Snap,
+# this file forbids snapd from being installed by APT.
+# For more information: https://linuxmint-user-guide.readthedocs.io/en/latest/snap.html
+Package: snapd
+Pin: release a=*
+Pin-Priority: -10
+EOF
+} > "$PROOT/etc/apt/preferences.d/nosnap.pref"
 {
 cat << EOF
 #!/usr/bin/env bash
 update_pkgs() { apt update -y && apt upgrade -y && apt autoremove -y ; }
 update_pkgs
-apt install -y sudo lsd fish
-sudo apt install -y xfce4 xfce4-terminal dbus-x11 wget apt-utils locales-all dialog tzdata libglvnd-dev zenity software-properties-common mesa-utils
+apt install -y sudo
+sudo apt install -y git gcc build-essential cmake xfce4 xfce4-terminal dbus-x11 wget apt-utils locales-all dialog tzdata libglvnd-dev zenity software-properties-common mesa-utils kate fish lsd
 update-alternatives --install /usr/bin/x-terminal-emulator x-terminal-emulator /usr/bin/xfce4-terminal 50
 update-alternatives --set x-terminal-emulator /usr/bin/xfce4-terminal
 update_pkgs
 exit 0
 EOF
-} >> "$PROOT/root/update.sh"
+} > "$PROOT/root/update.sh"
     chmod +x "$PROOT/root/update.sh"
 #    pdsh "./update.sh"
     mv "$PROOT/root/update.sh" "$PROOT/tmp/update.sh"
   }
-
   adduser() {
     rm -r "$PROOT/root/adduser.sh" >/dev/null 2>&1
 {
@@ -142,7 +160,7 @@ func() {
     useradd -m -g users -G wheel,audio,video,storage -s /bin/bash "\$user"
     printf "%s:%s" "\$user" "\$pass" | chpasswd
     chmod u+rw /etc/sudoers
-    printf "%s ALL=(ALL) ALL" "\$user">> /etc/sudoers
+    printf "%s ALL=(ALL) ALL" "\$user" >> /etc/sudoers
     chmod u-w /etc/sudoers
     printf "\n$user has been created!\n"
     func
@@ -150,11 +168,10 @@ func() {
 }
 func
 EOF
-} >> "$PROOT/root/adduser.sh"
+} > "$PROOT/root/adduser.sh"
     chmod +x "$PROOT/root/adduser.sh"
     pdsh "./adduser.sh"
   }
-
   prep() {
     if [ -f "$PROOT/tmp/update.sh" ]; then
       adduser
@@ -165,16 +182,9 @@ EOF
     login
   }
   prep
-
 }
-
 setup_ubuntu_oldlts() { init ; OS=ubuntu-oldlts ; }
-
 setup_void() { init ;}
-
-cleanup() { rm "$PREFIX/bin/run-ubuntu-x11" "$PROOT/tmp/chsh_fish.sh" "$PREFIX/tmp/install_ohmyzsh.sh" "$PREFIX/tmp/install_wine.sh" "$PROOT/usr/local/bin/start-xfce-x11" "$PROOT/tmp/update.sh" "$PROOT/root/adduser.sh" "$PROOT/root/.active_user"  >/dev/null 2>&1 ; }
-
-
 
 prompt() {
   if cmd_exists proot-distro; then
