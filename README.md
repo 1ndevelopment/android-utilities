@@ -77,3 +77,71 @@ android-utilities
     └── ./xfce_termux-x11_install.sh
 ```
 
+## Included Binaries
+```
+android-utilities
+└── bin
+    ├── arm
+    │   ├── android
+    │   │   ├── img2simg
+    │   │   ├── make_ext4fs
+    │   │   ├── sefcontext_decompile
+    │   │   └── simg2img
+    │   ├── img2simg
+    │   ├── make_ext4fs
+    │   ├── sefcontext_decompile
+    │   └── simg2img
+    ├── arm64
+    │   ├── android
+    │   │   ├── avbctl
+    │   │   ├── binrun
+    │   │   ├── bootctl
+    │   │   ├── busybox
+    │   │   ├── dextra
+    │   │   ├── erofs
+    │   │   ├── getcon
+    │   │   ├── img2simg
+    │   │   ├── imjtool
+    │   │   ├── lpadd
+    │   │   ├── lpdump
+    │   │   ├── lpflash
+    │   │   ├── lpmake
+    │   │   ├── lpunpack
+    │   │   ├── magiskboot
+    │   │   ├── make_ext4fs
+    │   │   ├── megatools
+    │   │   ├── parted
+    │   │   ├── pigz
+    │   │   ├── sefcontext_decompile
+    │   │   ├── setcon
+    │   │   ├── simg2img
+    │   │   └── tree
+    │   ├── img2simg
+    │   ├── lib
+    │   │   ├── libc++_shared.so
+    │   │   └── libz.so.1
+    │   ├── make_ext4fs
+    │   ├── sefcontext_decompile
+    │   └── simg2img
+    ├── x86
+    │   ├── android
+    │   │   ├── img2simg
+    │   │   ├── make_ext4fs
+    │   │   ├── sefcontext_decompile
+    │   │   └── simg2img
+    │   ├── img2simg
+    │   ├── make_ext4fs
+    │   ├── sefcontext_decompile
+    │   └── simg2img
+    └── x86_64
+        ├── android
+        │   ├── img2simg
+        │   ├── make_ext4fs
+        │   ├── sefcontext_decompile
+        │   └── simg2img
+        ├── img2simg
+        ├── make_ext4fs
+        ├── payload-dumper
+        ├── sefcontext_decompile
+        └── simg2img
+```
