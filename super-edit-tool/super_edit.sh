@@ -125,45 +125,73 @@ make_super() {
 }
 
 edit_boot_img() {
-  boot_name="boot_a"
-  silence mkdir -p ./extracted/boot/unpacked/ramdisk/
-
-  extract() {
-    img_path="/dev/block/by-name"
-    extract_boot_img() { dd if=$img_path/$boot_name of=./extracted/boot/$boot_name.img bs=2048 status=progress && echo "\n$boot_name.img extracted from $img_path" ; }
-    unpack_boot() { cd ./extracted/boot/unpacked/ && $magiskboot unpack -h ../$boot_name.img && cd ../../.. && echo "\n$boot_name.img unpacked.\n" ; }
-    unpack_ramdisk() { cd ./extracted/boot/unpacked/ramdisk && $magiskboot cpio ../ramdisk.cpio extract && cd ../../../../ && echo "\n$boot_name.img Ramdisk unpacked.\n" ; }
-    if [ -f "./extracted/boot/$boot_name.img" ]; then
-      if [ -f "./extracted/boot/unpacked/header" ]; then
-        if [ -f "./extracted/boot/unpacked/ramdisk/init" ]; then
-          echo "$boot_name.img is Extracted and Ramdisk is unpacked @\n./extracted/boot/unpacked/ramdisk"
-          prompt
-        else
-          unpack_ramdisk ; extract
-        fi
-      else
-        unpack_boot ; $tree ./extracted/boot/ ; extract
+  RPWD="$(pwd)/extracted/AIK"
+  unpack() {
+    RAW_PATH="/dev/block/bootdevice/by-name"
+    silence mkdir -p $RPWD/split $RPWD/ramdisk
+    extract_boot() {
+      sudo dd if=$RAW_PATH/boot_a of=$RPWD/boot_a.img bs=2048 status=progress
+      echo "\nboot_a extracted from $RAWPATH"
+    }
+    unpack_boot() {
+      cat $RPWD/boot_a.img > $RPWD/split/source.img
+      cd $RPWD/split
+      $magiskboot unpack -h source.img
+      cd ../../.. && echo "\nboot_a.img unpacked.\n"
+    }
+    unpack_ramdisk() {
+      RDTYPE=$(chkrdtype $RPWD/split/ramdisk.cpio | tee $RPWD/split/ramdisk_compression)
+      if cat "$RPWD/split/ramdisk_compression" | grep -q "zst"; then
+        mv $RPWD/split/ramdisk.cpio $RPWD/split/ramdisk.cpio.zst
+        zstd -d $RPWD/split/ramdisk.cpio.zst
+        rm $RPWD/split/ramdisk.cpio.zst
+      elif cat "$RPWD/split/ramdisk_compression" | grep -q "gzip"; then
+        mv $RPWD/split/ramdisk.cpio $RPWD/split/ramdisk.cpio.gz
+        gzip -d $RPWD/split/ramdisk.cpio.gz
+      elif cat "$RPWD/split/ramdisk_compression" | grep -q "xz"; then
+        mv $RPWD/split/ramdisk.cpio $RPWD/split/ramdisk.cpio.xz
+        xz -d $RPWD/split/ramdisk.cpio.xz@yhyü.
       fi
-    else
-      extract_boot ; extract
-    fi
-  }
-  repack() {
-    cd ./extracted/boot/unpacked
-    rm ramdisk.cpio && cd ramdisk
-    find . | cpio -H newc -o > ../ramdisk.cpio
-    cd .. && rm -r ramdisk
-    $magiskboot repack ../$boot_name.img
-    cd ../../..
+      cd $RPWD/ramdisk
+      cpio -i < $RPWD/split/ramdisk.cpio
+      cd ../../.. && echo "\nboot_a.img Ramdisk unpacked to:\n$RPWD/ramdisk"
+    }
+    extract_boot
+    unpack_boot
+    unpack_ramdisk
     prompt
   }
 
+  repack() {
+    IMG="$RPWD/split/source.img"
+    RDTYPE="$RPWD/split/ramdisk_compression"
+    [ "$RDTYPE" = "zst" ] && { RDTYPE="zstd" ; }
+    if [ -d "$RPWD/ramdisk" ]; then
+      cd $RPWD/ramdisk
+      TMP="$RPWD/split/ramdiskcpio.tmp"
+      RAMDISK="$RPWD/split/ramdisk.cpio"
+      sudo find . | cpio -H newc -o > $TMP
+      if cat "$RDTYPE" | grep -q "Unknown" || cat "$RDTYPE" | grep -q "cpio"; then
+        mv $TMP $RAMDISK
+      else
+        $RDTYPE -c $TMP > $RAMDISK
+        rm $TMP
+      fi
+    fi
+    if [ -f "$IMG" ]; then
+      cd $RPWD/split && sleep 1
+      $magiskboot repack $IMG && mv new-boot.img ..
+      cd ../../..
+      echo "\nboot.img repacked to:\n$RPWD/new-boot.img\n"
+    fi
+    prompt
+  }
   prompt() {
-    echo "" && ascii_box "Boot image editor"
-    echo -n "\n1] Extract ramdisk from boot.img\n2] Repack ramdisk into boot.img\n3] List contents of boot.img\n\nb] Main Menu\n\n>> " && read i && echo ""
+    echo "" && ascii_box "AIK Boot Image Editor"
+    echo -n "\n1] Unpack ramdisk from boot.img\n2] Repack ramdisk into boot.img\n3] List contents of boot.img\n\nb] Main Menu\n\n>> " && read i && echo ""
     case "$i" in
-        1) extract ;; 2) repack ;;
-        3) ls -1 ./extracted/boot/ ./extracted/boot/unpacked/ ./extracted/boot/unpacked/ramdisk/ && prompt ;;
+        1) unpack ;; 2) repack ;;
+        3) ls -1 $RPWD/split/ $RPWD/ramdisk/ && prompt ;;
         b) echo "Heading back to Main Menu...\n" && main_menu ;;
         q) echo "Qutting..." && exit 0 ;;
         *) echo "Invalid choice, try again.\n" && prompt ;;
