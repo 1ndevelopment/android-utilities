@@ -24,6 +24,7 @@ android-utilities
     │   │   ├── bootctl
     │   │   ├── busybox
     │   │   ├── dextra
+    │   │   ├── du
     │   │   ├── erofs
     │   │   ├── getcon
     │   │   ├── img2simg
@@ -31,17 +32,21 @@ android-utilities
     │   │   ├── lpadd
     │   │   ├── lpdump
     │   │   ├── lpflash
-    │   │   ├── lpmake
+    │   │   ├── lpmake
     │   │   ├── lpunpack
     │   │   ├── magiskboot
     │   │   ├── make_ext4fs
     │   │   ├── megatools
+    │   │   ├── p7zip
     │   │   ├── parted
     │   │   ├── pigz
+    │   │   ├── pv
     │   │   ├── sefcontext_decompile
-    │   │   ├── setcon
+    │   │   ├── setcon
+    │   │   ├── sha256sum
     │   │   ├── simg2img
-    │   │   └── tree
+    │   │   ├── tree
+    │   │   └── xzcat
     │   ├── img2simg
     │   ├── lib
     │   │   ├── libc++_shared.so
