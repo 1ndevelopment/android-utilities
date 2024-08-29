@@ -1,5 +1,7 @@
 #!/system/bin/sh
 
+source $(realpath .env)
+
 #pkg update && pkg upgrade
 #pkg install aapt apksigner dx ecj findutils git
 

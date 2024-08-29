@@ -1,6 +1,6 @@
 #!/system/bin/sh
 
-source ./.env
+source $(realpath .env)
 
 cleanup() {
   echo "\nCleaning up workspace...\n"
