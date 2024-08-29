@@ -115,6 +115,7 @@ android-utilities
     │       └── google
     │           └── android
     │               └── update-binary
+    ├── .env -> ../.env
     ├── bin -> ../bin
     └── ./package_ota.sh
 ```
@@ -129,6 +130,7 @@ android-utilities
 ```
 android-utilities
 └── super-edit-tool
+    ├── .env -> ../.env
     ├── bin -> ../bin
     └── ./super_edit.sh
 ```
