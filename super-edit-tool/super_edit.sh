@@ -149,9 +149,12 @@ edit_boot_img() {
     fi
   }
   repack() {
-    cd ./extracted/boot/unpacked && rm ramdisk.cpio && cd ramdisk
-    find . cpio ../ramdisk.cpio && cd .. && rm -r ramdisk
+    cd ./extracted/boot/unpacked
+    rm ramdisk.cpio && cd ramdisk
+    find . | cpio -H newc -o > ../ramdisk.cpio
+    cd .. && rm -r ramdisk
     $magiskboot repack ../$boot_name.img
+    cd ../../..
     prompt
   }
 
