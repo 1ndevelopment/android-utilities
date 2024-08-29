@@ -9,78 +9,86 @@ android-utilities
 └── bin
     ├── arm
     │   ├── android
-    │   │   ├── img2simg
-    │   │   ├── make_ext4fs
-    │   │   ├── sefcontext_decompile
-    │   │   └── simg2img
-    │   ├── img2simg
-    │   ├── make_ext4fs
-    │   ├── sefcontext_decompile
-    │   └── simg2img
+    │   │   ├── ./img2simg
+    │   │   ├── ./make_ext4fs
+    │   │   ├── ./sefcontext_decompile
+    │   │   └── ./simg2img
+    │   ├── ./img2simg
+    │   ├── ./make_ext4fs
+    │   ├── ./sefcontext_decompile
+    │   └── ./simg2img
     ├── arm64
     │   ├── android
-    │   │   ├── avbctl
-    │   │   ├── binrun
-    │   │   ├── bootctl
-    │   │   ├── busybox
-    │   │   ├── dextra
-    │   │   ├── du
-    │   │   ├── erofs
-    │   │   ├── getcon
-    │   │   ├── img2simg
-    │   │   ├── imjtool
-    │   │   ├── lpadd
-    │   │   ├── lpdump
-    │   │   ├── lpflash
-    │   │   ├── lpmake
-    │   │   ├── lpunpack
-    │   │   ├── magiskboot
-    │   │   ├── make_ext4fs
-    │   │   ├── megatools
-    │   │   ├── p7zip
-    │   │   ├── parted
-    │   │   ├── pigz
-    │   │   ├── pv
-    │   │   ├── sefcontext_decompile
-    │   │   ├── setcon
-    │   │   ├── sha256sum
-    │   │   ├── simg2img
-    │   │   ├── tree
-    │   │   └── xzcat
-    │   ├── img2simg
+    │   │   ├── ./avbctl
+    │   │   ├── ./binrun
+    │   │   ├── ./bootctl
+    │   │   ├── ./busybox
+    │   │   ├── ./dextra
+    │   │   ├── ./du
+    │   │   ├── ./erofs
+    │   │   ├── ./getcon
+    │   │   ├── ./img2simg
+    │   │   ├── ./imjtool
+    │   │   ├── ./lpadd
+    │   │   ├── ./lpdump
+    │   │   ├── ./lpflash
+    │   │   ├── ./lpmake
+    │   │   ├── ./lpunpack
+    │   │   ├── ./magiskboot
+    │   │   ├── ./make_ext4fs
+    │   │   ├── ./megatools
+    │   │   ├── ./p7zip
+    │   │   ├── ./parted
+    │   │   ├── ./pigz
+    │   │   ├── ./pv
+    │   │   ├── ./sefcontext_decompile
+    │   │   ├── ./setcon
+    │   │   ├── ./sha256sum
+    │   │   ├── ./simg2img
+    │   │   ├── ./tree
+    │   │   └── ./xzcat
+    │   ├── ./img2simg
     │   ├── lib
-    │   │   ├── libc++_shared.so
-    │   │   └── libz.so.1
-    │   ├── make_ext4fs
-    │   ├── sefcontext_decompile
-    │   └── simg2img
+    │   │   ├── ./libc++_shared.so
+    │   │   ├── ./libz.so.1
+    │   │   └── p7zip
+    │   │       ├── 7z
+    │   │       ├── 7z.so
+    │   │       ├── 7za
+    │   │       └── Codecs
+    │   │           └── Rar.so
+    │   ├── ./make_ext4fs
+    │   ├── ./sefcontext_decompile
+    │   └── ./simg2img
     ├── x86
     │   ├── android
-    │   │   ├── img2simg
-    │   │   ├── make_ext4fs
-    │   │   ├── sefcontext_decompile
-    │   │   └── simg2img
-    │   ├── img2simg
-    │   ├── make_ext4fs
-    │   ├── sefcontext_decompile
-    │   └── simg2img
+    │   │   ├── ./img2simg
+    │   │   ├── ./make_ext4fs
+    │   │   ├── ./sefcontext_decompile
+    │   │   └── ./simg2img
+    │   ├── ./img2simg
+    │   ├── ./make_ext4fs
+    │   ├── ./sefcontext_decompile
+    │   └── ./simg2img
     └── x86_64
         ├── android
-        │   ├── img2simg
-        │   ├── make_ext4fs
-        │   ├── sefcontext_decompile
-        │   └── simg2img
-        ├── img2simg
-        ├── make_ext4fs
-        ├── payload-dumper
-        ├── sefcontext_decompile
-        └── simg2img
+        │   ├── ./img2simg
+        │   ├── ./make_ext4fs
+        │   ├── ./sefcontext_decompile
+        │   └── ./simg2img
+        ├── ./img2simg
+        ├── ./make_ext4fs
+        ├── ./payload-dumper
+        ├── ./sefcontext_decompile
+        └── ./simg2img
 ```
 
 ## Build APK Tool
 ```
 android-utilities
 └── build-apk-tool
+    ├── bin -> ../bin
+    ├── ./.env -> ../.env
     └── ./build_apk.sh
 ```
 
@@ -98,10 +106,10 @@ android-utilities
     ├── ./1_install.sh
     ├── ./2_install.sh
     ├── ./exfat_USB.sh
-    ├── mount.exfat
-    ├── ntfs-3g
-    ├── ntfsfix
-    └── probe
+    ├── ./mount.exfat
+    ├── ./ntfs-3g
+    ├── ./ntfsfix
+    └── ./probe
 ```
 
 ## Recovery Flashable .zip Tool
@@ -109,14 +117,14 @@ android-utilities
 android-utilities
 └── ota-flashable-zip-template-tool
     ├── Firmware
-    │   └── place_firmware.imgs_here
+    │   └── ./place_firmware.imgs_here
     ├── META-INF
     │   └── com
     │       └── google
     │           └── android
-    │               └── update-binary
-    ├── .env -> ../.env
-    ├── bin -> ../bin
+    │               └── ./update-binary
+    ├── bin -> ../bin
+    ├── ./.env -> ../.env
     └── ./package_ota.sh
 ```
 
@@ -130,8 +138,8 @@ android-utilities
 ```
 android-utilities
 └── super-edit-tool
-    ├── .env -> ../.env
     ├── bin -> ../bin
+    ├── ./.env -> ../.env
     └── ./super_edit.sh
 ```
 

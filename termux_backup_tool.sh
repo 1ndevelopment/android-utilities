@@ -9,7 +9,7 @@ TMP="$PREFIX/tmp"
 list_name="packages.list"
 packages_list="$TMP/$list_name"
 
-. ./.env
+source $(realpath .env)
 detect_env
 
 list_installed > "$packages_list"

@@ -22,8 +22,8 @@
 # Fully cleanup post install files & directories
 # rm "$PREFIX/bin/run-ubuntu-x11" "$PROOT/tmp/chsh_fish" "$PROOT/tmp/.tmp" "$PREFIX/tmp/install_ohmyzsh.sh" "$PREFIX/tmp/install_wine.sh" "$PROOT/usr/local/bin/start-xfce-x11" "$PROOT/tmp/update.sh" "$PROOT/root/adduser.sh" "$PREFIX/tmp/adduser.sh" "$PROOT/tmp/chsh_fish.sh" "$PROOT/tmp/chsh-fish.sh" "$PROOT/root/.active_user" >/dev/null 2>&1 && nano "$PROOT/etc/environment" && nano "$PROOT/home/$user/.config/fish/config.fish"
 #
-# shellcheck source=/dev/null
-. ./.env
+
+source $(realpath .env)
 
 ROOTFS="$PREFIX/var/lib/proot-distro/installed-rootfs"
 

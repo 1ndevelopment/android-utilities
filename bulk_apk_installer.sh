@@ -20,8 +20,7 @@
 # Description: Bulk install both individual & split APK files at once
 #
 
-
-. ./.env
+source $(realpath .env)
 
 show_help() {
     echo ""
