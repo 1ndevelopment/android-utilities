@@ -162,8 +162,8 @@ func() {
     chmod u+rw /etc/sudoers
     printf "%s ALL=(ALL) ALL" "\$user" >> /etc/sudoers
     chmod u-w /etc/sudoers
-    printf "\n$user has been created!\n"
-    func
+    printf "\n\$user has been created!\n"
+    exit 0
   fi
 }
 func
