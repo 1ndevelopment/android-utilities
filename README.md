@@ -128,6 +128,12 @@ android-utilities
     └── ./package_ota.sh
 ```
 
+## Termux Chroot Installer
+```
+android-utilities
+└── ./chroot_installer.sh
+```
+
 ## Termux Proot Installer
 ```
 android-utilities

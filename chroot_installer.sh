@@ -18,6 +18,7 @@ setup_ubuntu() {
     echo "127.0.0.1 localhost" > $CHROOTFS/etc/hosts
     silence mkdir -p $CHROOTFS/sdcard $CHROOTFS/system $CHROOTFS/data $CHROOTFS/media/external $CHROOTFS/dev/shm
     silence chown -R media_rw:media_rw $CHROOTFS/media/external
+    silence chmod 1777 $CHROOTFS/dev/shm
 {
 cat << EOF
 #!/usr/bin/env bash
@@ -30,7 +31,7 @@ usermod -a -G aid_bt,aid_bt_net,aid_inet,aid_net_raw,aid_admin root
 update_pkgs() { apt update -y && apt upgrade -y && apt autoremove -y ; }
 update_pkgs
 apt install -y sudo
-sudo apt install -y git gcc build-essential cmake xfce4 xfce4-terminal dbus-x11 wget apt-utils locales-all dialog tzdata libglvnd-dev zenity software-properties-common mesa-utils kate fish lsd
+sudo apt install -y git gcc build-essential cmake xfce4 xfce4-terminal dbus-x11 wget apt-utils locales-all dialog tzdata libglvnd-dev zenity software-properties-common mesa-utils kate fish lsd apt-transport-https
 update-alternatives --install /usr/bin/x-terminal-emulator x-terminal-emulator /usr/bin/xfce4-terminal 50
 update-alternatives --set x-terminal-emulator /usr/bin/xfce4-terminal
 update_pkgs
