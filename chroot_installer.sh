@@ -26,6 +26,7 @@ groupadd -g 3004 aid_net_raw
 groupadd -g 1003 aid_graphics
 usermod -g 3003 -G 3003,3004 -a _apt
 usermod -G 3003 -a root
+usermod -a -G aid_bt,aid_bt_net,aid_inet,aid_net_raw,aid_admin root
 update_pkgs() { apt update -y && apt upgrade -y && apt autoremove -y ; }
 update_pkgs
 apt install -y sudo
