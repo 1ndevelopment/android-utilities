@@ -16,7 +16,7 @@ setup_ubuntu() {
     echo "$(getprop persist.sys.timezone)" > $CHROOTFS/etc/timezone
     echo "nameserver 8.8.8.8" > $CHROOTFS/etc/resolv.conf
     echo "127.0.0.1 localhost" > $CHROOTFS/etc/hosts
-    silence mkdir -p $CHROOTFS/sdcard $CHROOTFS/system $CHROOTFS/data $CHROOTFS/media/external $CHROOTFS/dev/shm
+    silence mkdir -p $CHROOTFS/sdcard $CHROOTFS/system $CHROOTFS/data $CHROOTFS/media/external $CHROOTFS/dev/shm $CHROOTFS/termux
     silence chown -R media_rw:media_rw $CHROOTFS/media/external
     silence chmod 1777 $CHROOTFS/dev/shm
 {
@@ -31,7 +31,7 @@ usermod -a -G aid_bt,aid_bt_net,aid_inet,aid_net_raw,aid_admin root
 update_pkgs() { apt update -y && apt upgrade -y && apt autoremove -y ; }
 update_pkgs
 apt install -y sudo
-sudo apt install -y git gcc build-essential cmake xfce4 xfce4-terminal dbus-x11 wget apt-utils locales-all dialog tzdata libglvnd-dev zenity software-properties-common mesa-utils kate fish lsd apt-transport-https
+sudo apt install -y git gcc build-essential cmake xfce4 xfce4-terminal dbus-x11 wget apt-utils locales-all dialog tzdata libglvnd-dev zenity software-properties-common mesa-utils kate fish lsd apt-transport-https vulkan-tools libegl1-mesa-dev
 update-alternatives --install /usr/bin/x-terminal-emulator x-terminal-emulator /usr/bin/xfce4-terminal 50
 update-alternatives --set x-terminal-emulator /usr/bin/xfce4-terminal
 update_pkgs
@@ -81,9 +81,10 @@ mount() {
   su -c "\$BB mount --bind /dev/pts \$CHROOTFS/dev/pts"
   su -c "\$BB mount --bind \$TMPDIR \$CHROOTFS/tmp"
   su -c "\$BB mount -t tmpfs -o size=256M tmpfs \$CHROOTFS/dev/shm"
-#  su -c "\$BB mount --bind /system \$CHROOTFS/system"
-#  su -c "\$BB mount --bind /data \$CHROOTFS/data"
+  su -c "\$BB mount --bind /system \$CHROOTFS/system"
+  su -c "\$BB mount --bind /data \$CHROOTFS/data"
 #  su -c "\$BB mount --bind /storage/emulated/0 \$CHROOTFS/sdcard"
+#  su -c "\$BB mount --bind /data/data/com.termux/files \$CHROOTFS/termux"
   su -c "\$BB mount --bind /mnt/media_rw/0711-1519 \$CHROOTFS/media/external"
 }
 unmount() {
@@ -93,9 +94,10 @@ unmount() {
   su -c "\$BB umount \$CHROOTFS/dev/pts -lf"
   su -c "\$BB umount \$CHROOTFS/dev -lf"
   su -c "\$BB umount \$CHROOTFS/tmp -lf"
-#  su -c "\$BB umount \$CHROOTFS/system -lf"
-#  su -c "\$BB umount \$CHROOTFS/data -lf"
+  su -c "\$BB umount \$CHROOTFS/system -lf"
+  su -c "\$BB umount \$CHROOTFS/data -lf"
 #  su -c "\$BB umount \$CHROOTFS/sdcard -lf"
+#  su -c "\$BB umount $CHROOTFS/termux -lf"
   su -c "\$BB umount \$CHROOTFS/media/external -lf"
 }
 if [ -z "\$2" ]; then
