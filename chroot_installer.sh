@@ -2,23 +2,37 @@
 
 source $(realpath .env)
 
-ascii_box "Chroot Linux Termux:x11 Installer"
+detect_env ; root_check ; busybox_check
 
-OS="ubuntu"
-CHROOTFS="/data/local/tmp/$OS"
-PREFIX="/data/data/com.termux/files/usr"
+ROOTFS="/data/local/tmp"
 
-setup_ubuntu() {
-  install_rootfs() {
-    mkdir -p $CHROOTFS/
+init() {
+  CHROOT="$ROOTFS/$OS"
+}
+
+setup_alpine() { init ;}
+setup_archlinux() { init ;}
+setup_artix() { init ;}
+setup_debian() { init ;}
+setup_debian_oldstable() { init ; OS=debian-oldstable; }
+setup_deepin() { init ;}
+setup_fedora() { init ;}
+setup_monjaro() { init ;}
+setup_openkylin() { init ;}
+setup_opensuse() { init ;}
+setup_pardus() { init ;}
+
+setup_ubuntu() { init ;
+  install_ubuntu() {
+    mkdir -p $CHROOT/
     wget https://website.com/ -P ubuntu.tar.xz
-    tar ./ubuntu.tar.xz -C $CHROOTFS/
-    echo "$(getprop persist.sys.timezone)" > $CHROOTFS/etc/timezone
-    echo "nameserver 8.8.8.8" > $CHROOTFS/etc/resolv.conf
-    echo "127.0.0.1 localhost" > $CHROOTFS/etc/hosts
-    silence mkdir -p $CHROOTFS/sdcard $CHROOTFS/system $CHROOTFS/data $CHROOTFS/media/external $CHROOTFS/dev/shm $CHROOTFS/termux
-    silence chown -R media_rw:media_rw $CHROOTFS/media/external
-    silence chmod 1777 $CHROOTFS/dev/shm
+    tar ./ubuntu.tar.xz -C $CHROOT/
+    echo "$(getprop persist.sys.timezone)" > $CHROOT/etc/timezone
+    echo "nameserver 8.8.8.8" > $CHROOT/etc/resolv.conf
+    echo "127.0.0.1 localhost" > $CHROOT/etc/hosts
+    silence mkdir -p $CHROOT/sdcard $CHROOT/system $CHROOT/data $CHROOT/media/external $CHROOT/dev/shm $CHROOT/termux
+    silence chown -R media_rw:media_rw $CHROOT/media/external
+    silence chmod 1777 $CHROOT/dev/shm
 {
 cat << EOF
 #!/usr/bin/env bash
@@ -37,9 +51,9 @@ update-alternatives --set x-terminal-emulator /usr/bin/xfce4-terminal
 update_pkgs
 exit 0
 EOF
-} > "$CHROOTFS/root/update.sh"
-    chmod +x "$CHROOTFS/root/update.sh"
-    rm -r "$CHROOTFS/root/adduser.sh" >/dev/null 2>&1
+} > "$CHROOT/root/update.sh"
+    chmod +x "$CHROOT/root/update.sh"
+    rm -r "$CHROOT/root/adduser.sh" >/dev/null 2>&1
 {
 cat << EOF
 #!/usr/bin/env bash
@@ -62,49 +76,50 @@ func() {
 }
 func
 EOF
-} > "$CHROOTFS/root/adduser.sh"
-    chmod +x "$CHROOTFS/root/adduser.sh"
+} > "$CHROOT/root/adduser.sh"
+    chmod +x "$CHROOT/root/adduser.sh"
     rm -r $PREFIX/bin/crsh
 {
 cat << EOF
 #!/system/bin/sh
 [ -z "\$1" ] && echo "No OS provided.\n" && exit 0 || OS="\$1"
-CHROOTFS="/data/local/tmp/\$OS"
+ROOTFS="/data/local/tmp"
+CHROOT="\$ROOTFS/\$OS"
 TMPDIR="/data/data/com.termux/files/usr/tmp"
 BB="/data/adb/magisk/busybox"
 unset LD_PRELOAD
 mount() {
   su -c "\$BB mount -o remount,dev,suid /data"
-  su -c "\$BB mount proc -t proc \$CHROOTFS/proc >/dev/null 2>&1"
-  su -c "\$BB mount sys -t sysfs \$CHROOTFS/sys >/dev/null 2>&1"
-  su -c "\$BB mount --bind /dev \$CHROOTFS/dev"
-  su -c "\$BB mount --bind /dev/pts \$CHROOTFS/dev/pts"
-  su -c "\$BB mount --bind \$TMPDIR \$CHROOTFS/tmp"
-  su -c "\$BB mount -t tmpfs -o size=256M tmpfs \$CHROOTFS/dev/shm"
-  su -c "\$BB mount --bind /system \$CHROOTFS/system"
-  su -c "\$BB mount --bind /data \$CHROOTFS/data"
-  su -c "\$BB mount --bind /sdcard \$CHROOTFS/sdcard"
-  su -c "\$BB mount --bind /data/data/com.termux/files \$CHROOTFS/media/termux_home"
-  su -c "\$BB mount --bind /mnt/media_rw/0711-1519 \$CHROOTFS/media/external"
+  su -c "\$BB mount proc -t proc \$CHROOT/proc >/dev/null 2>&1"
+  su -c "\$BB mount sys -t sysfs \$CHROOT/sys >/dev/null 2>&1"
+  su -c "\$BB mount --bind /dev \$CHROOT/dev"
+  su -c "\$BB mount --bind /dev/pts \$CHROOT/dev/pts"
+  su -c "\$BB mount --bind \$TMPDIR \$CHROOT/tmp"
+  su -c "\$BB mount -t tmpfs -o size=256M tmpfs \$CHROOT/dev/shm"
+  su -c "\$BB mount --bind /system \$CHROOT/system"
+  su -c "\$BB mount --bind /data \$CHROOT/data"
+  su -c "\$BB mount --bind /sdcard \$CHROOT/sdcard"
+  su -c "\$BB mount --bind /data/data/com.termux/files \$CHROOT/media/termux_home"
+  su -c "\$BB mount --bind /mnt/media_rw/0711-1519 \$CHROOT/media/external"
 }
 unmount() {
-  su -c "\$BB umount \$CHROOTFS/proc -lf"
-  su -c "\$BB umount \$CHROOTFS/sys -lf"
-  su -c "\$BB umount \$CHROOTFS/dev/shm -lf"
-  su -c "\$BB umount \$CHROOTFS/dev/pts -lf"
-  su -c "\$BB umount \$CHROOTFS/dev -lf"
-  su -c "\$BB umount \$CHROOTFS/tmp -lf"
-  su -c "\$BB umount \$CHROOTFS/system -lf"
-  su -c "\$BB umount \$CHROOTFS/data -lf"
-  su -c "\$BB umount \$CHROOTFS/sdcard -lf"
-  su -c "\$BB umount \$CHROOTFS/media/termux_home -lf"
-  su -c "\$BB umount \$CHROOTFS/media/external -lf"
+  su -c "\$BB umount \$CHROOT/proc -lf"
+  su -c "\$BB umount \$CHROOT/sys -lf"
+  su -c "\$BB umount \$CHROOT/dev/shm -lf"
+  su -c "\$BB umount \$CHROOT/dev/pts -lf"
+  su -c "\$BB umount \$CHROOT/dev -lf"
+  su -c "\$BB umount \$CHROOT/tmp -lf"
+  su -c "\$BB umount \$CHROOT/system -lf"
+  su -c "\$BB umount \$CHROOT/data -lf"
+  su -c "\$BB umount \$CHROOT/sdcard -lf"
+  su -c "\$BB umount \$CHROOT/media/termux_home -lf"
+  su -c "\$BB umount \$CHROOT/media/external -lf"
 }
 if [ -z "\$2" ]; then
   mount >/dev/null 2>&1
   echo "Entering Shell\n"
   user=root
-  su -c "\$BB chroot \$CHROOTFS /bin/su - \$user"
+  su -c "\$BB chroot \$CHROOT /bin/su - \$user"
   unmount >/dev/null 2>&1
   exit 0
 else
@@ -122,26 +137,23 @@ else
       pulseaudio --start --load="module-native-protocol-tcp auth-ip-acl=127.0.0.1 auth-anonymous=1" --exit-idle-time=-1
       pacmd load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1 auth-anonymous=1
       # Set GFX variables
-      MESA_NO_ERROR=1
-      MESA_GL_VERSION_OVERRIDE=4.3COMPAT
-      MESA_GLES_VERSION_OVERRIDE=3.2
-      GALLIUM_DRIVER=zink
-      ZINK_DESCRIPTORS=lazy
+      MESA_NO_ERROR=1 MESA_GL_VERSION_OVERRIDE=4.3COMPAT
+      MESA_GLES_VERSION_OVERRIDE=3.2 GALLIUM_DRIVER=zink ZINK_DESCRIPTORS=lazy
       # Run virgl gfx server locally
       virgl_test_server --use-egl-surfaceless --use-gles &
       # Kill x11 & xfce4 within chroot
-      su -c "\$BB chroot \$CHROOTFS /bin/su - \$user -c 'kill -9 \$(pgrep -f termux.x11)'"
-      su -c "\$BB chroot \$CHROOTFS /bin/su - \$user -c 'pkill -f startxfce4'"
+      su -c "\$BB chroot \$CHROOT /bin/su - \$user -c 'kill -9 \$(pgrep -f termux.x11)'"
+      su -c "\$BB chroot \$CHROOT /bin/su - \$user -c 'pkill -f startxfce4'"
       # Finally start termux:x11 app & xfce4 as chroot user
       am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity && sleep 1
-      su -c "\$BB chroot \$CHROOTFS /bin/su - \$user -c 'dbus-launch --exit-with-session startxfce4'"
+      su -c "\$BB chroot \$CHROOT /bin/su - \$user -c 'dbus-launch --exit-with-session startxfce4'"
     }
     run >/dev/null 2>&1 &
     echo "\nLogging in shell as \$user, starting GUI in Termux:x11.\n\nType exit to quit Shell & GUI session\n"
-    su -c "\$BB chroot \$CHROOTFS /bin/su - \$user"
+    su -c "\$BB chroot \$CHROOT /bin/su - \$user"
     quit() {
       # Logout XFCE4 x11 session
-      su -c "\$BB chroot \$CHROOTFS /bin/su - \$user -c 'dbus-send --session --dest=org.xfce.SessionManager --print-reply /org/xfce/SessionManager org.xfce.Session.Manager.Checkpoint string:'"
+      su -c "\$BB chroot \$CHROOT /bin/su - \$user -c 'dbus-send --session --dest=org.xfce.SessionManager --print-reply /org/xfce/SessionManager org.xfce.Session.Manager.Checkpoint string:'"
       # Kill virgl gfx service
       kill -9 \$(pgrep -f virgl_test_server) >/dev/null 2>&1
       kill -9 \$(pgrep -f virglrender) >/dev/null 2>&1
@@ -156,7 +168,7 @@ else
     }
     quit >/dev/null 2>&1
   fi
-  su -c "\$BB chroot \$CHROOTFS /bin/su - \$user -c \$CMD"
+  su -c "\$BB chroot \$CHROOT /bin/su - \$user -c \$CMD"
   unmount >/dev/null 2>&1
   exit 0
 fi
@@ -164,11 +176,32 @@ EOF
 } > $PREFIX/bin/crsh
     chmod +x $PREFIX/bin/crsh
   }
-  install_rootfs
+  install_"$OS"
   crsh "$OS" "/root/update.sh"
   crsh "$OS" "/root/adduser.sh"
   ascii_box "$OS has been installed!"
   echo "\nAccess Window Manager by running: crsh '$OS' GUI\n"
 }
 
-setup_"$OS"
+setup_ubuntu_oldlts() { init ; OS=ubuntu-oldlts ; }
+setup_void() { init ;}
+
+prompt() {
+  ascii_box "Chroot Linux Termux:x11 Installer"
+  printf "Select distro:\n\n\
+1] Alpine       %s\n2] ArchLinux    %s\n3] Artix        %s\n4] Debian       %s\n\
+5] Debian LTS   %s\n6] Deepin       %s\n7] Fedora       %s\n8] Monjaro      %s\n\
+9] Openkylin    %s\n10] Opensuse    %s\n11] Pardus      %s\n12] Ubuntu      %s\n\
+13] Ubuntu LTS  %s\n14] Void        %s\n\nq] Quit\n\n>> " \
+  "$(IS alpine)" "$(IS archlinux)" "$(IS artix)" "$(IS debian)" "$(IS debian-oldstable)" \
+  "$(IS deepin)" "$(IS fedora)" "$(IS monjaro)" "$(IS openkylin)" "$(IS opensuse)" \
+  "$(IS pardus)" "$(IS ubuntu)" "$(IS ubuntu-oldlts)" "$(IS void)" && read -r i && echo ""
+  case "$i" in
+    1) OS=alpine ;; 2) OS=archlinux ;; 3) OS=artix ;; 4) OS=debian ;; 5) OS=debian_oldstable ;;
+    6) OS=deepin ;; 7) OS=fedora ;; 8) OS=monjaro ;; 9) OS=openkylin ;; 10) OS=opensuse ;;
+    11) OS=pardus ;; 12) OS=ubuntu ;; 13) OS=ubuntu_oldlts ;; 14) OS=void ;; q) exit 0 ;;
+    *) printf "\nInvalid selection\n" && prompt ;;
+  esac
+  setup_"$OS"
+}
+prompt
