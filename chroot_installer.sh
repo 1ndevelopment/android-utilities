@@ -83,8 +83,8 @@ mount() {
   su -c "\$BB mount -t tmpfs -o size=256M tmpfs \$CHROOTFS/dev/shm"
   su -c "\$BB mount --bind /system \$CHROOTFS/system"
   su -c "\$BB mount --bind /data \$CHROOTFS/data"
-#  su -c "\$BB mount --bind /storage/emulated/0 \$CHROOTFS/sdcard"
-#  su -c "\$BB mount --bind /data/data/com.termux/files \$CHROOTFS/termux"
+  su -c "\$BB mount --bind /sdcard \$CHROOTFS/sdcard"
+  su -c "\$BB mount --bind /data/data/com.termux/files \$CHROOTFS/media/termux_home"
   su -c "\$BB mount --bind /mnt/media_rw/0711-1519 \$CHROOTFS/media/external"
 }
 unmount() {
@@ -96,8 +96,8 @@ unmount() {
   su -c "\$BB umount \$CHROOTFS/tmp -lf"
   su -c "\$BB umount \$CHROOTFS/system -lf"
   su -c "\$BB umount \$CHROOTFS/data -lf"
-#  su -c "\$BB umount \$CHROOTFS/sdcard -lf"
-#  su -c "\$BB umount $CHROOTFS/termux -lf"
+  su -c "\$BB umount \$CHROOTFS/sdcard -lf"
+  su -c "\$BB umount \$CHROOTFS/media/termux_home -lf"
   su -c "\$BB umount \$CHROOTFS/media/external -lf"
 }
 if [ -z "\$2" ]; then
@@ -114,18 +114,25 @@ else
   if [ "\$CMD" = "GUI" ]; then
     echo -n "\nEnter username: " && read user && user="\$user"
     run() {
+      # Kill previous termux.x11 local session just in case
       kill -9 \$(pgrep -f "termux.x11")
+      # Set XDG_RUNTIME_DIR & launch termux-x11
       XDG_RUNTIME_DIR=\${TMPDIR} termux-x11 :1 -ac & sleep 3
+      # Enable pulseaudio server locally
       pulseaudio --start --load="module-native-protocol-tcp auth-ip-acl=127.0.0.1 auth-anonymous=1" --exit-idle-time=-1
       pacmd load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1 auth-anonymous=1
+      # Set GFX variables
       MESA_NO_ERROR=1
       MESA_GL_VERSION_OVERRIDE=4.3COMPAT
       MESA_GLES_VERSION_OVERRIDE=3.2
       GALLIUM_DRIVER=zink
       ZINK_DESCRIPTORS=lazy
+      # Run virgl gfx server locally
       virgl_test_server --use-egl-surfaceless --use-gles &
+      # Kill x11 & xfce4 within chroot
       su -c "\$BB chroot \$CHROOTFS /bin/su - \$user -c 'kill -9 \$(pgrep -f termux.x11)'"
       su -c "\$BB chroot \$CHROOTFS /bin/su - \$user -c 'pkill -f startxfce4'"
+      # Finally start termux:x11 app & xfce4 as chroot user
       am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity && sleep 1
       su -c "\$BB chroot \$CHROOTFS /bin/su - \$user -c 'dbus-launch --exit-with-session startxfce4'"
     }
@@ -133,11 +140,17 @@ else
     echo "\nLogging in shell as \$user, starting GUI in Termux:x11.\n\nType exit to quit Shell & GUI session\n"
     su -c "\$BB chroot \$CHROOTFS /bin/su - \$user"
     quit() {
+      # Logout XFCE4 x11 session
       su -c "\$BB chroot \$CHROOTFS /bin/su - \$user -c 'dbus-send --session --dest=org.xfce.SessionManager --print-reply /org/xfce/SessionManager org.xfce.Session.Manager.Checkpoint string:'"
+      # Kill virgl gfx service
       kill -9 \$(pgrep -f virgl_test_server) >/dev/null 2>&1
       kill -9 \$(pgrep -f virglrender) >/dev/null 2>&1
-      pkill -f com.termux.x11
+      kill -9 \$(pgrep -f pulseaudio) >/dev/null 2>&1
+      # Stop Termux:x11 App
       am broadcast -a com.termux.x11.ACTION_STOP -p com.termux.x11
+      # Kill Termux:x11 App
+      pkill -f com.termux.x11
+      # Unmount directories
       unmount >/dev/null 2>&1
       exit 0
     }
