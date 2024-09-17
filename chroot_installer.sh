@@ -83,43 +83,42 @@ EOF
 cat << EOF
 #!/system/bin/sh
 [ -z "\$1" ] && echo "No OS provided.\n" && exit 0 || OS="\$1"
-ROOTFS="/data/local/tmp"
-CHROOT="\$ROOTFS/\$OS"
+CHROOTFS="/data/local/tmp/\$OS"
 TMPDIR="/data/data/com.termux/files/usr/tmp"
 BB="/data/adb/magisk/busybox"
 unset LD_PRELOAD
 mount() {
   su -c "\$BB mount -o remount,dev,suid /data"
-  su -c "\$BB mount proc -t proc \$CHROOT/proc >/dev/null 2>&1"
-  su -c "\$BB mount sys -t sysfs \$CHROOT/sys >/dev/null 2>&1"
-  su -c "\$BB mount --bind /dev \$CHROOT/dev"
-  su -c "\$BB mount --bind /dev/pts \$CHROOT/dev/pts"
-  su -c "\$BB mount --bind \$TMPDIR \$CHROOT/tmp"
-  su -c "\$BB mount -t tmpfs -o size=256M tmpfs \$CHROOT/dev/shm"
-  su -c "\$BB mount --bind /system \$CHROOT/system"
-  su -c "\$BB mount --bind /data \$CHROOT/data"
-  su -c "\$BB mount --bind /sdcard \$CHROOT/sdcard"
-  su -c "\$BB mount --bind /data/data/com.termux/files \$CHROOT/media/termux_home"
-  su -c "\$BB mount --bind /mnt/media_rw/0711-1519 \$CHROOT/media/external"
+  su -c "\$BB mount proc -t proc \$CHROOTFS/proc >/dev/null 2>&1"
+  su -c "\$BB mount sys -t sysfs \$CHROOTFS/sys >/dev/null 2>&1"
+  su -c "\$BB mount --bind /dev \$CHROOTFS/dev"
+  su -c "\$BB mount --bind /dev/pts \$CHROOTFS/dev/pts"
+  su -c "\$BB mount --bind \$TMPDIR \$CHROOTFS/tmp"
+  su -c "\$BB mount -t tmpfs -o size=256M tmpfs \$CHROOTFS/dev/shm"
+#  su -c "\$BB mount --bind /system \$CHROOTFS/system"
+#  su -c "\$BB mount --bind /data \$CHROOTFS/data"
+#  su -c "\$BB mount --bind /sdcard \$CHROOTFS/sdcard"
+#  su -c "\$BB mount --bind /data/data/com.termux/files \$CHROOTFS/media/termux_home"
+#  su -c "\$BB mount --bind /mnt/media_rw/0711-1519 \$CHROOTFS/media/external"
 }
 unmount() {
-  su -c "\$BB umount \$CHROOT/proc -lf"
-  su -c "\$BB umount \$CHROOT/sys -lf"
-  su -c "\$BB umount \$CHROOT/dev/shm -lf"
-  su -c "\$BB umount \$CHROOT/dev/pts -lf"
-  su -c "\$BB umount \$CHROOT/dev -lf"
-  su -c "\$BB umount \$CHROOT/tmp -lf"
-  su -c "\$BB umount \$CHROOT/system -lf"
-  su -c "\$BB umount \$CHROOT/data -lf"
-  su -c "\$BB umount \$CHROOT/sdcard -lf"
-  su -c "\$BB umount \$CHROOT/media/termux_home -lf"
-  su -c "\$BB umount \$CHROOT/media/external -lf"
+  su -c "\$BB umount \$CHROOTFS/proc -lf"
+  su -c "\$BB umount \$CHROOTFS/sys -lf"
+  su -c "\$BB umount \$CHROOTFS/dev/shm -lf"
+  su -c "\$BB umount \$CHROOTFS/dev/pts -lf"
+  su -c "\$BB umount \$CHROOTFS/dev -lf"
+  su -c "\$BB umount \$CHROOTFS/tmp -lf"
+#  su -c "\$BB umount \$CHROOTFS/system -lf"
+#  su -c "\$BB umount \$CHROOTFS/data -lf"
+#  su -c "\$BB umount \$CHROOTFS/sdcard -lf"
+#  su -c "\$BB umount \$CHROOTFS/media/termux_home -lf"
+#  su -c "\$BB umount \$CHROOTFS/media/external -lf"
 }
 if [ -z "\$2" ]; then
   mount >/dev/null 2>&1
   echo "Entering Shell\n"
   user=root
-  su -c "\$BB chroot \$CHROOT /bin/su - \$user"
+  su -c "\$BB chroot \$CHROOTFS /bin/su - \$user"
   unmount >/dev/null 2>&1
   exit 0
 else
@@ -137,23 +136,26 @@ else
       pulseaudio --start --load="module-native-protocol-tcp auth-ip-acl=127.0.0.1 auth-anonymous=1" --exit-idle-time=-1
       pacmd load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1 auth-anonymous=1
       # Set GFX variables
-      MESA_NO_ERROR=1 MESA_GL_VERSION_OVERRIDE=4.3COMPAT
-      MESA_GLES_VERSION_OVERRIDE=3.2 GALLIUM_DRIVER=zink ZINK_DESCRIPTORS=lazy
+      MESA_NO_ERROR=1
+      MESA_GL_VERSION_OVERRIDE=4.3COMPAT
+      MESA_GLES_VERSION_OVERRIDE=3.2
+      GALLIUM_DRIVER=zink
+      ZINK_DESCRIPTORS=lazy
       # Run virgl gfx server locally
       virgl_test_server --use-egl-surfaceless --use-gles &
       # Kill x11 & xfce4 within chroot
-      su -c "\$BB chroot \$CHROOT /bin/su - \$user -c 'kill -9 \$(pgrep -f termux.x11)'"
-      su -c "\$BB chroot \$CHROOT /bin/su - \$user -c 'pkill -f startxfce4'"
+      su -c "\$BB chroot \$CHROOTFS /bin/su - \$user -c 'kill -9 \$(pgrep -f termux.x11)'"
+      su -c "\$BB chroot \$CHROOTFS /bin/su - \$user -c 'pkill -f startxfce4'"
       # Finally start termux:x11 app & xfce4 as chroot user
       am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity && sleep 1
-      su -c "\$BB chroot \$CHROOT /bin/su - \$user -c 'dbus-launch --exit-with-session startxfce4'"
+      su -c "\$BB chroot \$CHROOTFS /bin/su - \$user -c 'dbus-launch --exit-with-session startxfce4'"
     }
     run >/dev/null 2>&1 &
     echo "\nLogging in shell as \$user, starting GUI in Termux:x11.\n\nType exit to quit Shell & GUI session\n"
-    su -c "\$BB chroot \$CHROOT /bin/su - \$user"
+    su -c "\$BB chroot \$CHROOTFS /bin/su - \$user"
     quit() {
       # Logout XFCE4 x11 session
-      su -c "\$BB chroot \$CHROOT /bin/su - \$user -c 'dbus-send --session --dest=org.xfce.SessionManager --print-reply /org/xfce/SessionManager org.xfce.Session.Manager.Checkpoint string:'"
+      su -c "\$BB chroot \$CHROOTFS /bin/su - \$user -c 'dbus-send --session --dest=org.xfce.SessionManager --print-reply /org/xfce/SessionManager org.xfce.Session.Manager.Checkpoint string:'"
       # Kill virgl gfx service
       kill -9 \$(pgrep -f virgl_test_server) >/dev/null 2>&1
       kill -9 \$(pgrep -f virglrender) >/dev/null 2>&1
@@ -168,7 +170,7 @@ else
     }
     quit >/dev/null 2>&1
   fi
-  su -c "\$BB chroot \$CHROOT /bin/su - \$user -c \$CMD"
+  su -c "\$BB chroot \$CHROOTFS /bin/su - \$user -c \$CMD"
   unmount >/dev/null 2>&1
   exit 0
 fi
