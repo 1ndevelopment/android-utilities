@@ -67,7 +67,7 @@ mount_img() {
     #resize2fs ./extracted/$IMG_NAME.img 2G
     sudo losetup $LOOP_DEVICE ./extracted/$IMG_NAME.img
     sudo mount -t ext4 -o rw $LOOP_DEVICE $MOUNT_POINT
-    case "$(mountpoint -q "$MOUNT_POINT"; echo $?)" in
+    case "$(/system/bin/mountpoint -q "$MOUNT_POINT"; echo $?)" in
       0) echo "\n$IMG_NAME mounted successfully at: $MOUNT_POINT\n"; main_menu ;;
       *) printf '\nFailed to mount the image\n'; mount_img ;;
     esac
@@ -111,7 +111,7 @@ remove_bloat() {
 unmount_img() {
 ## Unmount chosen .img from mount point
   unmount() {
-    while ! umount "$MOUNT_POINT"; do { echo "\nAttempting to unmount $IMG_NAME from $MOUNT_POINT\n" ; } done
+    while ! su -c "umount $MOUNT_POINT"; do { echo "\nAttempting to unmount $IMG_NAME from $MOUNT_POINT\n" ; } done
     echo "\nSuccessfully unmounted $IMG_NAME from $MOUNT_POINT\n"
     #e2fsck -yf ./extracted/$IMG_NAME.img
     #resize2fs -M ./extracted/$IMG_NAME.img
@@ -122,9 +122,9 @@ unmount_img() {
   echo "$MOUNTED_IMGS"
   echo -n "\nb) Main Menu\n\n>> " && read IMG_NAME
   case "$IMG_NAME" in
-    system*) MOUNT_POINT="./mounted/system" && unmount ;;
-    vendor*) MOUNT_POINT="./mounted/system/vendor" && unmount ;;
-    product*) MOUNT_POINT="./mounted/system/product" && unmount ;;
+    system*) export MOUNT_POINT="$(pwd)/mounted/system" && unmount ;;
+    vendor*) export MOUNT_POINT="$(pwd)/mounted/system/vendor" && unmount ;;
+    product*) export MOUNT_POINT="$(pwd)/mounted/system/product" && unmount ;;
     [qb]) echo "\nHeading back to Main Menu...\n" && main_menu ;;
     *) echo "\nUnknown mount directory:\n$IMG_NAME" && unmount_img ;;
   esac
