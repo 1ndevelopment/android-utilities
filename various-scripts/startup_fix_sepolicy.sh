@@ -1,51 +1,10 @@
 #!/system/bin/sh
+while [ "$(getprop sys.boot_completed)" != "1" ]; do
+  sleep 1
+done
+## Fix common SELinux non-permissive issues
+/system/bin/magisk su -c "/system/bin/magiskpolicy --live 'allow untrusted_app_27 * * {*}' 'allow system_server * * {*}' 'allow system_suspend * * {*}' 'allow mtk_hal_nvramagent * * {*}' 'allow magisk * * {*}' 'allow system_app * * {*}' 'allow mnld * * {*}' 'allow platform_app * * {*}' 'allow untrusted_app * * {*}' 'allow untrusted_app_29 * * {*}' 'allow priv_app * * {*}' 'allow untrusted_app_30 * * {*}' 'allow untrusted_app_25 * * {*}' 'allow audioserver * * {*}' 'allow crash_dump * * {*}' 'allow su * * {*}' 'allow mediaserver * * {*}' 'allow hwservicemanager * * {*}' 'allow mtk_hal_c2 * * {*}' 'allow surfaceflinger * * {*}' 'allow mediaswcodec * * {*}' 'allow shell * * {*}' 'allow gsid * * {*}'"
 
-# ONCE ROOTED; MOVE THIS FILE TO /data/adb/service.d/
-
-export su="/system/bin/magisk su"
-export magiskpolicy="/system/bin/magiskpolicy"
-
-$su -c "$magiskpolicy --live 'allow untrusted_app_27 * * {*}'"
-$su -c "$magiskpolicy --live 'allow system_server * * {*}'"
-$su -c "$magiskpolicy --live 'allow system_suspend * * {*}'"
-$su -c "$magiskpolicy --live 'allow mtk_hal_nvramagent * * {*}'"
-$su -c "$magiskpolicy --live 'allow magisk * * {*}'"
-$su -c "$magiskpolicy --live 'allow system_app * * {*}'"
-$su -c "$magiskpolicy --live 'allow mnld * * {*}'"
-$su -c "$magiskpolicy --live 'allow platform_app * * {*}'"
-$su -c "$magiskpolicy --live 'allow untrusted_app * * {*}'"
-$su -c "$magiskpolicy --live 'allow untrusted_app_29 * * {*}'"
-$su -c "$magiskpolicy --live 'allow priv_app * * {*}'"
-
-$su -c "$magiskpolicy --live 'allow untrusted_app_30 * * {*}'"
-$su -c "$magiskpolicy --live 'allow untrusted_app_25 * * {*}'"
-$su -c "$magiskpolicy --live 'allow audioserver * * {*}'"
-$su -c "$magiskpolicy --live 'allow crash_dump * * {*}'"
-
-$su -c "$magiskpolicy --live 'allow su * * {*}'"
-$su -c "$magiskpolicy --live 'allow mediaserver * * {*}'"
-$su -c "$magiskpolicy --live 'allow hwservicemanager * * {*}'"
-$su -c "$magiskpolicy --live 'allow mtk_hal_c2 * * {*}'"
-$su -c "$magiskpolicy --live 'allow surfaceflinger * * {*}'"
-$su -c "$magiskpolicy --live 'allow mediaswcodec * * {*}'"
-$su -c "$magiskpolicy --live 'allow shell * * {*}'"
-
-$su -c "$magiskpolicy --live 'allow * { app_data_file privapp_data_file } file { execute_no_trans }'"
-
-$su -c "$magiskpolicy --live 'allow gsid * * {*}'"
-
-# below is for arrowos GSI
-#$su -c "$magiskpolicy --live 'allow surfaceflinger * * {*}'"
-#$su -c "$magiskpolicy --live 'allow vold * * {*}'"
-#$su -c "$magiskpolicy --live 'allow radio * * {*}'"
-#$su -c "$magiskpolicy --live 'allow installd * * {*}'"
-
-#$su -c "$magiskpolicy --live 'allow ccci_mdinit * * {*}'"
-#$su -c "$magiskpolicy --live 'allow vendor_init * * {*}'"
-#$su -c "$magiskpolicy --live 'allow hal_fingerprint_oppo_compat * * {*}'"
-#$su -c "$magiskpolicy --live 'allow init * * {*}'"
-#$su -c "$magiskpolicy --live 'allow rild * * {*}'"
-
-#$su -c "$magiskpolicy --live 'allow bip * * {*}'"
-#$su -c "$magiskpolicy --live 'allow gsm0710muxd * * {*}'"
+## Fix SELinux Policies for ArrowOS
+/system/bin/magisk su -c "/system/bin/magiskpolicy --live 'allow surfaceflinger * * {*}' 'allow vold * * {*}' 'allow radio * * {*}' 'allow installd * * {*}' 'allow ccci_mdinit * * {*}' 'allow vendor_init * * {*}' 'allow hal_fingerprint_oppo_compat * * {*}' 'allow init * * {*}' 'allow rild * * {*}' 'allow bip * * {*}' 'allow gsm0710muxd * * {*}' 'allow phhsu_daemon * * {*}' 'allow isolated_app * * {*}'"
 

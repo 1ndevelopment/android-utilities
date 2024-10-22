@@ -1,7 +1,7 @@
 #!/system/bin/sh
 
 #
-# Script Name: Proot Linux Termux:x11 Installer
+# Script Name: Proot-Distro Termux:x11 Installer
 # Author: Jacy Kincade (1ndevelopment@protonmail.com)
 #
 # License: GPL
@@ -27,12 +27,53 @@ source $(realpath .env)
 
 ROOTFS="$PREFIX/var/lib/proot-distro/installed-rootfs"
 
-init() {
-  PROOT="$ROOTFS/$OS"
-  check ; timezone
+init() { export PROOT="$ROOTFS/$OS" ;}
+
+setup_alpine() { init ;
+  ins_deps() {
+    ## Install proot-distro & dependencies
+    pkg install -y x11-repo tur-repo && pkg update && termux-setup-storage 
+    pkg install -y dbus proot proot-distro pulseaudio virglrenderer-android pavucontrol-qt mesa-zink virglrenderer-mesa-zink vulkan-loader-android virglrenderer-android glmark2 mesa-zink virglrenderer-mesa-zink xkeyboard-config termux-am cabextract
+  }
+  init_config() {
+    pdsh() { proot-distro login alpine --shared-tmp -- /bin/ash -c "$1" ;}
+    update_pkgs() { pdsh "apk update && apk upgrade" ;}
+    install_setup_pkgs() { pdsh "apk add sudo nano dbus-x11 xfce chromium fish" ;}
+  
+    add_user() { 
+      printf "Username: " && read username && printf ""
+      pdsh "adduser $username && adduser $username wheel && echo '$username All=(ALL:ALL) ALL' >> /etc/sudoers" ;}
+
+    ## Create alpine launcher for termux (example: run-alpine-x11 your-username)
+{
+cat << EOF
+#!/data/data/com.termux/files/usr/bin/bash
+printf "Username: " && read username && printf ""
+pdsh() { proot-distro login alpine --user \$username --shared-tmp -- /bin/ash -c "\$1" ;}
+kill -9 \$(pgrep -f "termux.x11") 2>/dev/null
+pulseaudio --start --load="module-native-protocol-tcp auth-ip-acl=127.0.0.1 auth-anonymous=1" --exit-idle-time=-1
+export XDG_RUNTIME_DIR=\${TMPDIR}
+termux-x11 :0 >/dev/null &
+sleep 3
+am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity > /dev/null 2>&1
+sleep 1
+pdsh 'export PULSE_SERVER=127.0.0.1 && export XDG_RUNTIME_DIR=\${TMPDIR} && env DISPLAY=:0 startxfce4'
+exit 0
+EOF
+} > "$PREFIX/bin/run-alpine-x11" && chmod +x "$PREFIX/bin/run-alpine-x11"
+  }
+  # Determine if OS is installed, if not then init, configure & setup
+  if [ -d "$PROOT" ]; then
+    echo "$OS is installed."
+    run-alpine-x11
+  else
+    ins_deps
+    pd i "$OS"
+    termux-reload-settings
+    init_config
+  fi
 }
 
-setup_alpine() { init ;}
 setup_archlinux() { init ;}
 setup_artix() { init ;}
 setup_debian() { init ;}
@@ -43,7 +84,104 @@ setup_monjaro() { init ;}
 setup_openkylin() { init ;}
 setup_opensuse() { init ;}
 setup_pardus() { init ;}
+
 setup_ubuntu() { init ;
+  ins_deps() {
+    ## Install proot-distro & dependencies
+    pkg install -y x11-repo tur-repo && pkg update && termux-setup-storage 
+    pkg install -y dbus proot proot-distro pulseaudio virglrenderer-android pavucontrol-qt mesa-zink virglrenderer-mesa-zink vulkan-loader-android virglrenderer-android glmark2 mesa-zink virglrenderer-mesa-zink xkeyboard-config termux-am cabextract
+  }
+  init_config() {
+    ## Set timezone
+    [ -f "$PROOT/etc/timezone" ] && { echo "Updated timezone to: $(cat $PROOT/etc/timezone)" ;} || echo "$(getprop persist.sys.timezone)" > "$PROOT/etc/timezone"
+    ## Disable snap pkgs
+{
+cat << EOF
+Package: snapd
+Pin: release a=*
+Pin-Priority: -10
+EOF
+} > "$PROOT/etc/apt/preferences.d/nosnap.pref"
+    ## Configure environment variables
+    echo "XDG_RUNTIME_DIR=${TMPDIR}" >> "$PROOT/etc/environment"
+    ## Update and install essential dependencies
+{
+cat << EOF
+#!/usr/bin/env bash
+update_pkgs() { apt update -y && apt upgrade -y && apt autoremove -y ; }
+update_pkgs
+apt install -y sudo
+sudo apt install -y git gcc build-essential cmake xfce4 xfce4-terminal terminator dbus-x11 wget apt-utils locales-all dialog tzdata libglvnd-dev zenity software-properties-common mesa-utils fish lsd
+update-alternatives --install /usr/bin/x-terminal-emulator x-terminal-emulator /usr/bin/xfce4-terminal 50
+update-alternatives --set x-terminal-emulator /usr/bin/xfce4-terminal
+update_pkgs
+exit 0
+EOF
+} > "$PROOT/root/update.sh" && chmod +x "$PROOT/root/update.sh"
+    $PREFIX/bin/pdsh "$OS" "root" "$PROOT/root/update.sh"
+    ## Create adduser.sh script
+{
+cat << EOF
+#!/usr/bin/env bash
+func() {
+  [ -n "\$user" ] && { printf "..." ; } || printf "\nEnter Username: " && read user && printf ""
+  if awk -F":" '{print \$1}' /etc/passwd | grep -q "\$user"; then
+    printf "\nLogging in as \$user\n"
+    echo "\$user" > "/root/.active_user"
+  else
+    printf "Password: " && read pass && printf ""
+    groupadd storage && groupadd wheel
+    useradd -m -g users -G wheel,audio,video,storage -s /bin/bash "\$user"
+    printf "%s:%s" "\$user" "\$pass" | chpasswd
+    chmod u+rw /etc/sudoers
+    printf "%s ALL=(ALL) ALL\n" "\$user" >> /etc/sudoers
+    chmod u-w /etc/sudoers
+    printf "\n\$user has been created!\n"
+    exit 0
+  fi
+}
+func
+EOF
+} > "$PROOT/root/adduser.sh" && chmod +x "$PROOT/root/adduser.sh"
+    $PREFIX/bin/pdsh "$OS" "root" "$PROOT/root/adduser.sh"
+    ## Create launcher for termux
+{
+cat << EOF
+#!/data/data/com.termux/files/usr/bin/sh
+printf "Username: " && read user && printf ""
+killall -9 termux-x11 Xwayland pulseaudio virgl_test_server virgl_test_server_android termux-wake-lock > /dev/null 2>&1
+am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity > /dev/null 2>&1
+XDG_RUNTIME_DIR=\${TMPDIR}
+termux-x11 :1 -ac &
+sleep 3
+pulseaudio --start --load="module-native-protocol-tcp auth-ip-acl=127.0.0.1 auth-anonymous=1" --exit-idle-time=-1
+pacmd load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1 auth-anonymous=1
+#MESA_NO_ERROR=1
+#MESA_GL_VERSION_OVERRIDE=4.3COMPAT
+#MESA_GLES_VERSION_OVERRIDE=3.2
+#ZINK_DESCRIPTORS=lazy
+GALLIUM_DRIVER=zink
+virgl_test_server --use-egl-surfaceless --use-gles &
+proot-distro login ubuntu --user \$user --shared-tmp -- bash -c "export DISPLAY=:1 PULSE_SERVER=tcp:127.0.0.1 ; dbus-launch --exit-with-session startxfce4" > /dev/null 2>&1
+echo "Shutting down instance..."
+pkill -9 -f "virgl_test_server|virgl_test_server_android|virglrender|pulseaudio" > /dev/null 2>&1
+exit 0
+EOF
+} > "$PREFIX/bin/run-ubuntu-x11" && chmod +x "$PREFIX/bin/run-ubuntu-x11"
+  }
+  ## Determine if OS is installed, if not then init, configure & setup
+  if [ -d "$PROOT" ]; then
+    echo "$OS is installed."
+    run-ubuntu-x11
+  else
+    ins_deps
+    pd i "$OS"
+    termux-reload-settings
+    init_config
+  fi
+}
+
+setup_ubuntu_old() { init ;
   login() {
     user=$(cat "$PROOT/root/.active_user")
     if [ -f "$PROOT/usr/local/bin/start-xfce-x11" ]; then
@@ -111,7 +249,7 @@ EOF
         run
       fi
     else
-      printf "su - %s -c \"termux-x11 :1 -xstartup 'dbus-launch --exit-with-session xfce4-session'\"\n" "$user" >> "$PROOT/usr/local/bin/start-xfce-x11"
+      printf "su - %s -c \"termux-x11 :1 -xstartup 'dbus-launch --exit-with-session xfce4-session'\"\n" "$user" > "$PROOT/usr/local/bin/start-xfce-x11"
       chmod +x "$PROOT/usr/local/bin/start-xfce-x11" && login
     fi
   }
@@ -141,7 +279,7 @@ exit 0
 EOF
 } > "$PROOT/root/update.sh"
     chmod +x "$PROOT/root/update.sh"
-#    pdsh "./update.sh"
+  ## pdsh "./update.sh"
     mv "$PROOT/root/update.sh" "$PROOT/tmp/update.sh"
   }
   adduser() {
@@ -221,7 +359,7 @@ q] Quit\n\n>> " \
     ascii_box "Installing needed packages..."
     pkg install x11-repo termux-x11-repo -y && pkg update && termux-setup-storage
     pkg install dbus proot proot-distro pulseaudio virglrenderer-android pavucontrol-qt mesa-zink virglrenderer-mesa-zink vulkan-loader-android virglrenderer-android glmark2 mesa-zink virglrenderer-mesa-zink xkeyboard-config termux-am cabextract -y
-    printf "OS=\$1\npdsh() { x=\"\$1\" ; pd sh \"\$OS\" --shared-tmp --no-sysvipc -- env DISPLAY=:1 \$x ; }\n[ -n \"\$2\" ] && { pdsh \$2 ; exit 0 ;} || pdsh /bin/bash ; exit 0\n" >> "$PREFIX/bin/pdsh" && chmod +x "$PREFIX/bin/pdsh"
+    printf "OS=\$1\npdsh() { x=\"\$1\" ; pd sh \"\$OS\" --shared-tmp --no-sysvipc -- env DISPLAY=:1 \$x ; }\n[ -n \"\$2\" ] && { pdsh \$2 ; exit 0 ;} || pdsh /bin/bash ; exit 0\n" > "$PREFIX/bin/pdsh" && chmod +x "$PREFIX/bin/pdsh"
     prompt
   fi
 }
